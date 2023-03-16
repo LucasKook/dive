@@ -5,8 +5,9 @@ set.seed(-42)
 
 # FUNs --------------------------------------------------------------------
 
-gen_dat <- function(n = 3e3, parmD = 0, parmY = c(-0.5, 1)) {
+gen_dat <- function(n = 1e3, parmD = 0, parmY = c(0.5, 1)) {
   H <- rt(n, df = 5)
+  NF <- rnorm(n)
   E <- sample(c(-1, 1), n, TRUE)
   ND <- rlogis(n)
   NY <- rlogis(n)
@@ -20,15 +21,23 @@ gen_dat <- function(n = 3e3, parmD = 0, parmY = c(-0.5, 1)) {
   data.frame(Y = Y, D = D, E = E, H = H)
 }
 
+obj <- \(b, Y, X, prm) {
+  R <- (Y - plogis(X %*% b))
+  c(t(R) %*% prm %*% R)
+}
+
 res <- replicate(1e2, {
   d <- gen_dat()
   d$R <- residuals(m0 <- glm(D ~ E, data = d, family = "binomial"), type = "response")
   d$PR <- fitted(m0)
+  E <- cbind(1, d$E)
+  prm <- E %*% solve(t(E) %*% E) %*% t(E)
   c(
     YD = unname(coef(glm(Y ~ D, data = d, family = "binomial"))["D"]),
     YDH = unname(coef(glm(Y ~ D + H, data = d, family = "binomial"))["D"]),
     SRI = unname(coef(glm(Y ~ D + R, data = d, family = "binomial"))["D"]),
-    PR = unname(coef(glm(Y ~ PR, data = d, family = "binomial"))["PR"])
+    PR = unname(coef(glm(Y ~ PR, data = d, family = "binomial"))["PR"]),
+    GEE = optim(c(0, 0), obj, Y = d$Y, X = cbind(1, d$D), prm = prm)$par[2]
   )
 })
 
