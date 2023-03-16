@@ -7,10 +7,9 @@ library("coin")
 
 # FUNs --------------------------------------------------------------------
 
-gen_dat <- function(n = 1e4, parmD = 0, parmY = c(0.5, 1)) {
+gen_dat <- function(n = 1e4, parmD = 0, parmY = c(-0.5, 1)) {
   H <- rt(n, df = 5)
-  NF <- rnorm(n)
-  E <- sample(c(-1, 1), n, TRUE)
+  E <- rnorm(n) # sample(c(-1, 1), n, TRUE)
   ND <- rlogis(n)
   NY <- rlogis(n)
   gD <- H + ND
@@ -34,12 +33,17 @@ ind_obj <- \(b, Y, X, E, tstat = "quadratic", trafo = identity) {
   trafo(statistic(independence_test(R ~ E, teststat = tstat)))
 }
 
+# d <- gen_dat(n = 1e3)
+# ts <- unlist(lapply(bs <- seq(-2, 2, length.out = 1e2), \(bb) ind_obj(
+#   b = c(-0.5, bb), Y = d$Y, X = cbind(1, d$D), E = d$E, tstat = "max", trafo = abs)))
+# plot(bs, ts, type = "l")
+
 hsic_obj <- \(b, Y, X, E) {
   R <- (Y - plogis(X %*% b))
   dHSIC::dhsic(R, E)$dHSIC
 }
 
-res <- replicate(5e1, {
+res <- replicate(2e2, {
   d <- gen_dat()
   d$R <- residuals(m0 <- glm(D ~ E, data = d, family = "binomial"), type = "response")
   d$PR <- fitted(m0)
@@ -50,8 +54,8 @@ res <- replicate(5e1, {
     YDH = unname(coef(glm(Y ~ D + H, data = d, family = "binomial"))["D"]),
     SRI = unname(coef(glm(Y ~ D + R, data = d, family = "binomial"))["D"]),
     PR = unname(coef(glm(Y ~ PR, data = d, family = "binomial"))["PR"]),
-    COR = optim(c(0, 0), cor_obj, Y = d$Y, X = cbind(1, d$D), E = E)$par[2],
-    IND = optim(c(0, 0), ind_obj, Y = d$Y, X = cbind(1, d$D), E = d$E)$par[2]
+    COR = optim(c(-0.5, 1), cor_obj, Y = d$Y, X = cbind(1, d$D), E = E)$par[2],
+    IND = optim(c(-0.5, 1), ind_obj, Y = d$Y, X = cbind(1, d$D), E = d$E)$par[2]
     # HSIC = optim(c(0, 0), hsic_obj, Y = d$Y, X = cbind(1, d$D), E = d$E)$par[2]
   )
 })
