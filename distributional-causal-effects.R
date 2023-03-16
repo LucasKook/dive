@@ -129,4 +129,4 @@ ggplot(pd, aes(x = surv, y = est, color = method)) +
   labs(x = "time", y = "Estimate") +
   scale_color_brewer(palette = "Dark2")
 
-ggsave("dte.pdf", height = 6, width = 7)
+ggsave("dte.pdf", height = 6, width = 8)
