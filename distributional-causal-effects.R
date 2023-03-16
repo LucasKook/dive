@@ -5,6 +5,7 @@
 #   f(y, x) = \partial_x F_{Y | X = x}(y)
 
 library("tram")
+library("survival")
 library("tidyverse")
 theme_set(theme_bw() + theme(legend.position = "top", text = element_text(size = 13.5)))
 
@@ -61,7 +62,7 @@ curve(dok(x), trange[1], trange[2])
 # With tram ---------------------------------------------------------------
 
 # Ignoring censoring! TODO: Update with KM estimator
-GBSG2$surv <- with(GBSG2, survival::Surv(time, rep(1, nrow(GBSG2)))) # cens))
+GBSG2$surv <- with(GBSG2, Surv(time, rep(1, nrow(GBSG2)))) # cens))
 m <- Coxph(surv | 0 + horTh ~ 1, data = GBSG2, prob = c(0.001, 0.999), order = 10)
 nd0 <- data.frame(
   surv = seq(0, max(GBSG2$time), length.out = 1e3),
