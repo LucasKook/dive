@@ -35,6 +35,7 @@ qte <- \(p) quantile(g2, probs = p) - quantile(g1, probs = p)
 tte <- \(y, qZ = \(p) log(-log(1-p))) qZ(ecdf(g2)(y)) - qZ(ecdf(g1)(y))
 rte <- \(y) log(ecdf(g2)(y)) - log(ecdf(g1)(y))
 dok <- \(y) quantile(g1, probs = ecdf(g2)(y)) - y
+rpd <- \(p) ecdf(g2)(quantile(g1, probs = p)) - p
 
 trange <- c(max(range(g1)[1], range(g2)[1]), min(range(g1)[2], range(g2)[2]))
 curve(dte(x), trange[1], trange[2])
@@ -42,6 +43,7 @@ curve(qte(x), 0, 1)
 curve(tte(x), trange[1], trange[2])
 curve(rte(x), trange[1], trange[2])
 curve(dok(x), trange[1], trange[2])
+curve(rpd(x), 0, 1)
 
 # Survival example --------------------------------------------------------
 
@@ -102,7 +104,16 @@ sDOK <- as.double(predict(m, type = "quantile", newdata = nd0[1, ],
   prob = predict(m, type = "distribution", newdata = nd1[-1, ]))) - nd0$surv[-1]
 lines(nd0$surv[-1], sDOK, type = "l")
 
-### DTE with censoring
+# Reparameterized DTE
+nnd0 <- nd1
+nnd0$p <- seq(1e-6, 1 - 1e-6, length.out = nrow(nd0))
+plot(nnd0$p, rpd(nnd0$p), type = "l")
+nnd0$surv <- as.double(predict(m, type = "quantile", newdata = nd0[1, ], prob = nnd0$p))
+sRPD <- as.double(predict(m, type = "distribution", newdata = nnd0)) - nnd0$p
+lines(nnd0$p, sRPD, type = "l")
+
+# DTE with censoring ------------------------------------------------------
+
 cecdf <- function(y) {
   f1 <- survfit(y ~ 1)
   Vectorize(\(y) 1 - f1$surv[rev(which(f1$time <= y))[1]])
@@ -138,11 +149,12 @@ pd <- nd0 %>%
     QTE = -qte(ecdf(surv)(surv)),
     RTE = rte(surv),
     TTE = tte(surv),
+    RPD = rpd(surv),
     DOK = dok(surv),
     method = "Nonparametric plug-in"
   ) %>% full_join(nd0 %>% mutate(
     DTE = sDTE, QTE = -sQTE,
-    RTE = sRTE, TTE = sTTE, DOK = c(0, sDOK),
+    RTE = sRTE, TTE = sTTE, RPD = sRPD, DOK = c(0, sDOK),
     method = "Transformation model"
   )) %>% pivot_longer(DTE:DOK, names_to = "type", values_to = "est") %>%
   mutate(type = factor(type, levels = c("DTE", "QTE", "TTE", "RTE", "DOK")))
