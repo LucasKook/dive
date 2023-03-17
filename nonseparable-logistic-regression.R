@@ -7,29 +7,32 @@ library("coin")
 
 # FUNs --------------------------------------------------------------------
 
-gen_dat <- function(n = 1e3, parmD = 0, parmY = c(0, 1), discreteD = TRUE,
-                    discreteE = TRUE) {
-  H <- rnorm(n) # rt(n, df = 5)
+gen_dat <- function(n = 1e4, parmD = 0, parmY = c(-0.5, 1), discreteD = TRUE,
+                    discreteE = TRUE, normalHDE = FALSE, conditional = FALSE,
+                    discreteH = TRUE) {
+  H <- if (discreteH) sample(c(-1, 1), n, TRUE) else if (normalHDE) rnorm(n)
+  else rt(n, df = 5) / 2
   E <- if (discreteE) sample(c(-1, 1), n, TRUE) else rnorm(n)
-  ND <- rnorm(n) # rlogis(n)
-  NY <- rnorm(n) # rlogis(n)
+  ND <- if (normalHDE) rnorm(n) else rlogis(n)
+  NY <- if (normalHDE) rnorm(n) else rlogis(n)
   gD <- H + ND
   gY <- H + NY
-  g2u <- \(abc) {\(g) pnorm(g, sd = sqrt(2))} # \(g) ecdf(g)
+  g2u <- if (normalHDE) \(...) {\(g) pnorm(g, sd = sqrt(2))} else \(g) ecdf(g)
   UD <- g2u(gD)(gD)
   UY <- g2u(gY)(gY)
   D <- if (discreteD) {
-    as.numeric(plogis(parmD + E) <= UD)
+    if (conditional) as.numeric(plogis(parmD + E + H) <= ND)
+    else as.numeric(plogis(parmD + E) <= UD)
   } else {
     pnorm(UD, mean = parmD + E)
   }
-  Y <- as.numeric(plogis(parmY[1] + D * parmY[2]) >= UY)
+  Y <- if (conditional) as.numeric(parmY[1] + D * parmY[2] + H >= NY)
+  else as.numeric(plogis(parmY[1] + D * parmY[2]) >= UY)
   data.frame(Y = Y, D = D, E = E, H = H)
 }
 
 cor_obj <- \(b, Y, X, E) {
   R <- (Y - plogis(X %*% b))
-  # c(t(R) %*% prm %*% R)
   sum(fitted(lm(R ~ E))^2)
 }
 
@@ -61,22 +64,29 @@ hsic_obj <- \(b, Y, X, E) {
 #   b = c(-0.5, bb), Y = d$Y, X = cbind(1, d$D), E = d$E)))
 # plot(bs, ts, type = "l")
 
-res <- replicate(2e1, {
-  d <- gen_dat(discreteD = FALSE, discreteE = FALSE)
+# set.seed(1)
+# d <- gen_dat(discreteD = TRUE, discreteE = TRUE, conditional = TRUE)
+# glm(Y ~ D * H, data = d, family = "binomial")
+# set.seed(1)
+# d <- gen_dat(discreteD = TRUE, discreteE = TRUE, conditional = FALSE)
+# glm(Y ~ D * H, data = d, family = "binomial")
+
+res <- replicate(1e2, {
+  d <- gen_dat(discreteD = TRUE, discreteE = TRUE, conditional = TRUE)
   # d$R <- residuals(m0 <- lm(D ~ E, data = d))
-  # d$R <- residuals(m0 <- glm(D ~ E, data = d, family = "binomial"), type = "response")
-  # d$PR <- fitted(m0)
+  d$R <- residuals(m0 <- glm(D ~ E, data = d, family = "binomial"), type = "response")
+  d$PR <- fitted(m0)
   # E <- cbind(1, d$E)
   # prm <- E %*% solve(t(E) %*% E) %*% t(E)
   c(
     YD = unname(coef(glm(Y ~ D, data = d, family = "binomial"))["D"]),
-    # YDH = unname(coef(glm(Y ~ D + H, data = d, family = "binomial"))["D"]),
-    # SRI = unname(coef(glm(Y ~ D + R, data = d, family = "binomial"))["D"]),
-    # PR = unname(coef(glm(Y ~ PR, data = d, family = "binomial"))["PR"]),
-    # COR = optim(c(-0.5, 0.5), cor_obj, Y = d$Y, X = cbind(1, d$D), E = E)$par[2],
-    # IND = optim(c(-0.5, 1), ind_obj, Y = d$Y, X = cbind(1, d$D), E = d$E)$par[2]
+    YDH = unname(coef(glm(Y ~ D + H, data = d, family = "binomial"))["D"]),
+    SRI = unname(coef(glm(Y ~ D + R, data = d, family = "binomial"))["D"]),
+    PR = unname(coef(glm(Y ~ PR, data = d, family = "binomial"))["PR"]),
+    COR = optim(c(-0.5, 0.5), cor_obj, Y = d$Y, X = cbind(1, d$D), E = d$E)$par[2],
+    IND = optim(c(-0.5, 1), ind_obj, Y = d$Y, X = cbind(1, d$D), E = d$E)$par[2]
     # HSIC = optim(c(-0.5, 1), hsic_obj, Y = d$Y, X = cbind(1, d$D), E = d$E)$par[2]
-    HSIC1D = optimize(\(b) hsic_obj(c(0, b), Y = d$Y, X = cbind(1, d$D), E = d$E), interval = c(1e-12, 10))$minimum
+    # HSIC1D = optimize(\(b) hsic_obj(c(0, b), Y = d$Y, X = cbind(1, d$D), E = d$E), interval = c(1e-12, 10))$minimum
   )
 })
 
