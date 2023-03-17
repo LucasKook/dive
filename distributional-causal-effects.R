@@ -102,6 +102,29 @@ sDOK <- as.double(predict(m, type = "quantile", newdata = nd0[1, ],
   prob = predict(m, type = "distribution", newdata = nd1[-1, ]))) - nd0$surv[-1]
 lines(nd0$surv[-1], sDOK, type = "l")
 
+### DTE with censoring
+cecdf <- function(y) {
+  f1 <- survfit(y ~ 1)
+  Vectorize(\(y) 1 - f1$surv[rev(which(f1$time <= y))[1]])
+}
+
+GBSG2$tsurv <- with(GBSG2, Surv(time, cens))
+g1 <- with(GBSG2, cecdf(tsurv[horTh == "no", ]))
+g2 <- with(GBSG2, cecdf(tsurv[horTh == "yes", ]))
+plot(nd0$surv, g1(nd0$surv), type = "s", ylim = c(0, 1))
+lines(nd0$surv, g2(nd0$surv), type = "s", col = 2)
+mm <- Coxph(tsurv | horTh ~ 1, data = GBSG2, prob = c(0.001, 0.999), order = 10)
+
+lines(nd0$surv, p1 <- predict(mm, newdata = nd0 %>% rename(tsurv = surv), type = "distribution"))
+lines(nd0$surv, p2 <- predict(mm, newdata = nd1 %>% rename(tsurv = surv), type = "distribution"), col = 2)
+
+plot(nd0$surv, g2(nd0$surv) - g1(nd0$surv), type = "s")
+lines(nd0$surv, p2 - p1, type = "s")
+
+qMEV <- \(p) log(-log(1 - p))
+plot(nd0$surv, qMEV(g2(nd0$surv)) - qMEV(g1(nd0$surv)), type = "s")
+lines(nd0$surv, qMEV(p2) - qMEV(p1), type = "s")
+
 # ggplot ------------------------------------------------------------------
 
 ggplot(GBSG2, aes(x = time, color = horTh)) +
