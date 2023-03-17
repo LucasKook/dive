@@ -7,15 +7,15 @@ library("coin")
 
 # FUNs --------------------------------------------------------------------
 
-gen_dat <- function(n = 1e3, parmD = 0, parmY = c(-0.5, 1), discreteD = TRUE,
+gen_dat <- function(n = 1e3, parmD = 0, parmY = c(0, 1), discreteD = TRUE,
                     discreteE = TRUE) {
-  H <- rt(n, df = 5)
+  H <- rnorm(n) # rt(n, df = 5)
   E <- if (discreteE) sample(c(-1, 1), n, TRUE) else rnorm(n)
-  ND <- rlogis(n)
-  NY <- rlogis(n)
+  ND <- rnorm(n) # rlogis(n)
+  NY <- rnorm(n) # rlogis(n)
   gD <- H + ND
   gY <- H + NY
-  g2u <- \(g) ecdf(g)
+  g2u <- \(abc) {\(g) pnorm(g, sd = sqrt(2))} # \(g) ecdf(g)
   UD <- g2u(gD)(gD)
   UY <- g2u(gY)(gY)
   D <- if (discreteD) {
@@ -42,6 +42,7 @@ ind_obj <- \(b, Y, X, E, tstat = "quadratic", trafo = identity) {
 # ts <- unlist(lapply(bs <- seq(-2, 2, length.out = 1e2), \(bb) ind_obj(
 #   b = c(-0.5, bb), Y = d$Y, X = cbind(1, d$D), E = d$E, tstat = "max", trafo = abs)))
 # plot(bs, ts, type = "l")
+
 hsic_obj <- \(b, Y, X, E) {
   R <- (Y - plogis(X %*% b))
   # R1 <- R[id1 <- (R > median(R))]
@@ -49,13 +50,19 @@ hsic_obj <- \(b, Y, X, E) {
   # m1 <- mean(c(dHSIC:::median_bandwidth_rcpp(as.matrix(R1), length(R1), 1),
   #              dHSIC:::median_bandwidth_rcpp(as.matrix(R2), length(R2), 1)))
   # if (m1 == 0) m1 <- 0.001
-  m1 <- 0.1
+  m1 <- 0.001
   m2 <- dHSIC:::median_bandwidth_rcpp(as.matrix(E), length(E), 1)
   dHSIC::dhsic(R, E, kernel = c("gaussian.fixed", "gaussian.fixed"), bandwidth = c(m1, m2))$dHSIC
+  # dHSIC::dhsic(R, E, kernel = c("discrete", "discrete"), bandwidth = c(1e-5))$dHSIC
 }
 
-res <- replicate(1e2, {
-  d <- gen_dat()
+# d <- gen_dat(n = 1e3, discreteD = FALSE, discreteE = FALSE)
+# ts <- unlist(lapply(bs <- seq(-4, 4, length.out = 1e2), \(bb) hsic_obj(
+#   b = c(-0.5, bb), Y = d$Y, X = cbind(1, d$D), E = d$E)))
+# plot(bs, ts, type = "l")
+
+res <- replicate(2e1, {
+  d <- gen_dat(discreteD = FALSE, discreteE = FALSE)
   # d$R <- residuals(m0 <- lm(D ~ E, data = d))
   # d$R <- residuals(m0 <- glm(D ~ E, data = d, family = "binomial"), type = "response")
   # d$PR <- fitted(m0)
@@ -67,8 +74,9 @@ res <- replicate(1e2, {
     # SRI = unname(coef(glm(Y ~ D + R, data = d, family = "binomial"))["D"]),
     # PR = unname(coef(glm(Y ~ PR, data = d, family = "binomial"))["PR"]),
     # COR = optim(c(-0.5, 0.5), cor_obj, Y = d$Y, X = cbind(1, d$D), E = E)$par[2],
-    IND = optim(c(-0.5, 1), ind_obj, Y = d$Y, X = cbind(1, d$D), E = d$E)$par[2]
+    # IND = optim(c(-0.5, 1), ind_obj, Y = d$Y, X = cbind(1, d$D), E = d$E)$par[2]
     # HSIC = optim(c(-0.5, 1), hsic_obj, Y = d$Y, X = cbind(1, d$D), E = d$E)$par[2]
+    HSIC1D = optimize(\(b) hsic_obj(c(0, b), Y = d$Y, X = cbind(1, d$D), E = d$E), interval = c(1e-12, 10))$minimum
   )
 })
 
