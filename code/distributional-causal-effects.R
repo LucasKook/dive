@@ -1,15 +1,23 @@
 # Distributional causal effects
 # LK 2023
 
-# Distributional causal effect:
-#   f(y, x) = \partial_x F_{Y | X = x}(y)
+set.seed(0)
+
+odir <- file.path("figures")
+if (!dir.exists(odir))
+  dir.create(odir)
+
+# Dependencies ------------------------------------------------------------
 
 library("tram")
 library("survival")
 library("tidyverse")
-theme_set(theme_bw() + theme(legend.position = "top", text = element_text(size = 13.5)))
+theme_set(theme_bw() +
+            theme(legend.position = "top", text = element_text(size = 13.5)))
 
 # Normal linear regression ------------------------------------------------
+# Distributional causal effect:
+#   f(y, x) = \partial_x F_{Y | X = x}(y)
 
 nlrm <- function(y, x, beta = 1, sigma = 1) {
   - dnorm(y - x * beta, sd = sigma) * beta / sigma
@@ -141,7 +149,10 @@ lines(nd0$surv, qMEV(p2) - qMEV(p1), type = "s")
 ggplot(GBSG2, aes(x = time, color = horTh)) +
   stat_ecdf() + labs(y = "ECDF", color = "Treatment")
 
-ggsave("gbsg2.pdf", height = 4, width = 5)
+ggsave(file.path(odir, "gbsg2.pdf"), height = 4, width = 5)
+
+g1 <- GBSG2$time[GBSG2$horTh == "no"]
+g2 <- GBSG2$time[GBSG2$horTh == "yes"]
 
 pd <- nd0 %>%
   mutate(
@@ -149,7 +160,7 @@ pd <- nd0 %>%
     QTE = -qte(ecdf(surv)(surv)),
     RTE = rte(surv),
     TTE = tte(surv),
-    RPD = rpd(surv),
+    RPD = rpd(ecdf(surv)(surv)),
     DOK = dok(surv),
     method = "Nonparametric plug-in"
   ) %>% full_join(nd0 %>% mutate(
@@ -157,7 +168,7 @@ pd <- nd0 %>%
     RTE = sRTE, TTE = sTTE, RPD = sRPD, DOK = c(0, sDOK),
     method = "Transformation model"
   )) %>% pivot_longer(DTE:DOK, names_to = "type", values_to = "est") %>%
-  mutate(type = factor(type, levels = c("DTE", "QTE", "TTE", "RTE", "DOK")))
+  mutate(type = factor(type, levels = c("DTE", "QTE", "TTE", "RTE", "DOK", "RPD")))
 
 ggplot(pd, aes(x = surv, y = est, color = method)) +
   geom_line() +
@@ -165,4 +176,4 @@ ggplot(pd, aes(x = surv, y = est, color = method)) +
   labs(x = "time", y = "Estimate") +
   scale_color_brewer(palette = "Dark2")
 
-ggsave("dte.pdf", height = 6, width = 8)
+ggsave(file.path(odir, "dte.pdf"), height = 6, width = 8)
