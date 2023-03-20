@@ -22,7 +22,6 @@ gen_dat <- function(n = 1e4, p = 2, nz = 1, betaX = c(1, 0), betaY = c(-1, 0)) {
 
 d <- gen_dat()
 dp <- gen_dat()
-dt <- gen_dat()
 
 # Fit models --------------------------------------------------------------
 
