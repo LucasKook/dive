@@ -8,8 +8,8 @@ library("coin")
 # FUNs --------------------------------------------------------------------
 
 gen_dat <- function(n = 1e4, parmD = 0, parmY = c(-0.5, 1), discreteD = TRUE,
-                    discreteE = TRUE, normalHDE = FALSE, conditional = FALSE,
-                    discreteH = TRUE) {
+                    discreteE = TRUE, normalHDE = TRUE, conditional = FALSE,
+                    discreteH = FALSE) {
   H <- if (discreteH) sample(c(-1, 1), n, TRUE) else if (normalHDE) rnorm(n)
   else rt(n, df = 5) / 2
   E <- if (discreteE) sample(c(-1, 1), n, TRUE) else rnorm(n)
@@ -56,7 +56,6 @@ res <- replicate(1e2, {
     YD = unname(coef(glm(Y ~ D, data = d, family = "binomial"))["D"]),
     YDH = unname(coef(glm(Y ~ D + H, data = d, family = "binomial"))["D"]),
     SRI = unname(coef(glm(Y ~ D + R, data = d, family = "binomial"))["D"]),
-    PR = unname(coef(glm(Y ~ PR, data = d, family = "binomial"))["PR"]),
     COR = optim(c(-0.5, 0.5), cor_obj, Y = d$Y, X = cbind(1, d$D), E = d$E)$par[2],
     IND = optim(c(-0.5, 1), ind_obj, Y = d$Y, X = cbind(1, d$D), E = d$E)$par[2]
   )
