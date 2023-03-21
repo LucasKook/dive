@@ -6,10 +6,16 @@
 # dependencies ------------------------------------------------------------
 
 library("deeptrafo")
+library("tram")
 
 # DGP ---------------------------------------------------------------------
 
-gen_dat <- function(n = 5e4, p = 2, nz = 1, betaX = c(1, 0), betaY = c(1, 0)) {
+tp <- 2
+tnz <- 1
+bX <- rep(c(1, 0), c(tnz, tp - tnz))
+bY <- rep(c(1, 0), c(tnz, tp - tnz))
+
+gen_dat <- function(n = 5e4, p = tp, nz = tnz, betaX = bX, betaY = bY) {
   X <- matrix(runif(n * p), ncol = p, nrow = n)
   props <- plogis(X %*% betaX)
   D <- as.numeric(props >= runif(n))
@@ -51,7 +57,7 @@ pp1 <- t(predict(m1, newdata = dp[dp$D == 1, -1], q = qs, type = "distribution")
 # mp <- glm(D ~ X.1 + X.2, data = dp, family = "binomial")
 # preds <- predict(mp, newdata = d[, -1], type = "response")
 # ps <- d$D * preds + (1 - d$D) * (1 - preds)
-ps <- attr(dt, "props")
+ps <- attr(dp, "props")
 
 ### Influence function
 IF <- function(y, preds, Y, prop) {
