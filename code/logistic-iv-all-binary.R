@@ -89,7 +89,7 @@ res <- replicate(nsim, {
   ### Two-stage GLM
   ndP <- data.frame(expand.grid(PR = sort(unique(d$PR))))
   mPR <- glm(Y ~ PR, data = d, family = "binomial")
-  PR <- diff(predict(mPR, newdata = ndP, type = "response"))
+  PR <- diff(unname(predict(mPR, newdata = ndP, type = "response")))
 
   ### Foster correlation
   pCOR <- optim(c(-0.5, 0.5), cor_obj, Y = d$Y, X = cbind(1, d$D), E = d$E)$par
