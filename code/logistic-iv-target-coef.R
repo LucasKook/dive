@@ -47,32 +47,50 @@ cor_obj <- \(b, Y, X, E) {
 
 pY1D1 <- integrate(\(o) plogis(0.5 + o) * dunif(o, min = -3, max = 3), lower = -10, upper = 10)$value
 pY1D0 <- integrate(\(o) plogis(-0.5 + o) * dunif(o, min = -3, max = 3), lower = -10, upper = 10)$value
+oracle <- log((pY1D1 * (1 - pY1D0)) / ((1 - pY1D1) * pY1D0))
 
-log((pY1D1 * (1 - pY1D0)) / ((1 - pY1D1) * pY1D0))
-
-d0 <- gen_dat(parmD = 0, n = 1e4)
-d1 <- gen_dat(parmD = 1, n = 1e4)
-
-coef(glm(Y ~ D, data = d0, family = "binomial"))
-coef(glm(Y ~ D, data = d1, family = "binomial"))
-
-res <- replicate(5e1, {
+cres <- replicate(1e2, {
   d0 <- gen_dat(parmD = 0)
   d1 <- gen_dat(parmD = 1)
-
   c(
-    GLM1 = mean(coef(glm(Y ~ D, data = d1, family = "binomial")) - c(-0.5, 1)),
-    GLM0 = mean(coef(glm(Y ~ D, data = d0, family = "binomial")) - c(-0.5, 1)),
-    GLM1 = mean(coef(glm(Y ~ D + O, data = d1, family = "binomial")) - c(-0.5, 1, 1)),
-    GLM0 = mean(coef(glm(Y ~ D + O, data = d0, family = "binomial")) - c(-0.5, 1, 1)),
-    # ORC1 = mean(coef(glm(Y ~ D + H, data = d1, family = "binomial")) - c(-0.5, 1, 1)),
-    # ORC0 = mean(coef(glm(Y ~ D + H, data = d0, family = "binomial")) - c(-0.5, 1, 1)),
-    # IND1 = mean(optim(c(-0.5, 1), ind_obj, Y = d1$Y, X = cbind(1, d1$D), E = d1$E)$par - c(-0.5, 1)),
-    # IND0 = mean(optim(c(-0.5, 1), ind_obj, Y = d0$Y, X = cbind(1, d0$D), E = d0$E)$par - c(-0.5, 1)),
-    COR1 = mean(optim(c(-0.5, 1), cor_obj, Y = d1$Y, X = cbind(1, d1$D), E = d1$E)$par - c(-0.5, 1)),
-    COR0 = mean(optim(c(-0.5, 1), cor_obj, Y = d0$Y, X = cbind(1, d0$D), E = d0$E)$par - c(-0.5, 1))
+    GLMD0 = coef(glm(Y ~ D, data = d0, family = "binomial"))[2],
+    GLMD1 = coef(glm(Y ~ D, data = d1, family = "binomial"))[2],
+    GLMD0O = coef(glm(Y ~ D + O, data = d0, family = "binomial"))[2],
+    GLMD1O = coef(glm(Y ~ D + O, data = d1, family = "binomial"))[2],
+    COR0 = optim(c(-0.5, 1), cor_obj, Y = d0$Y, X = cbind(1, d0$D), E = d0$E)$par[2],
+    COR1 = optim(c(-0.5, 1), cor_obj, Y = d1$Y, X = cbind(1, d1$D), E = d1$E)$par[2],
+    COR0O = optim(c(-0.5, 1, 1), cor_obj, Y = d0$Y, X = cbind(1, d0$D, d0$O), E = d0$E)$par[2],
+    COR1O = optim(c(-0.5, 1, 1), cor_obj, Y = d1$Y, X = cbind(1, d1$D, d1$O), E = d1$E)$par[2]
   )
 })
 
-boxplot(t(res), ylab = "bias")
-abline(h = 0, lty = 2, col = 2)
+boxplot(t(cres), ylab = "estimate - oracle")
+abline(h = oracle, col = 2, lty = 2)
+abline(h = 1, col = 3, lty = 2)
+legend("topleft", c("marginal", "conditional"), col = 2:3, title = "Oracle",
+       lty = 2, bty = "n")
+
+if (FALSE) {
+
+  res <- replicate(5e1, {
+    d0 <- gen_dat(parmD = 0)
+    d1 <- gen_dat(parmD = 1)
+
+    c(
+      GLM1 = mean(coef(glm(Y ~ D, data = d1, family = "binomial")) - c(-0.5, 1)),
+      GLM0 = mean(coef(glm(Y ~ D, data = d0, family = "binomial")) - c(-0.5, 1)),
+      GLM1 = mean(coef(glm(Y ~ D + O, data = d1, family = "binomial")) - c(-0.5, 1, 1)),
+      GLM0 = mean(coef(glm(Y ~ D + O, data = d0, family = "binomial")) - c(-0.5, 1, 1)),
+      # ORC1 = mean(coef(glm(Y ~ D + H, data = d1, family = "binomial")) - c(-0.5, 1, 1)),
+      # ORC0 = mean(coef(glm(Y ~ D + H, data = d0, family = "binomial")) - c(-0.5, 1, 1)),
+      # IND1 = mean(optim(c(-0.5, 1), ind_obj, Y = d1$Y, X = cbind(1, d1$D), E = d1$E)$par - c(-0.5, 1)),
+      # IND0 = mean(optim(c(-0.5, 1), ind_obj, Y = d0$Y, X = cbind(1, d0$D), E = d0$E)$par - c(-0.5, 1)),
+      COR1 = mean(optim(c(-0.5, 1), cor_obj, Y = d1$Y, X = cbind(1, d1$D), E = d1$E)$par - c(-0.5, 1)),
+      COR0 = mean(optim(c(-0.5, 1), cor_obj, Y = d0$Y, X = cbind(1, d0$D), E = d0$E)$par - c(-0.5, 1))
+    )
+  })
+
+  boxplot(t(res), ylab = "bias")
+  abline(h = 0, lty = 2, col = 2)
+
+}
