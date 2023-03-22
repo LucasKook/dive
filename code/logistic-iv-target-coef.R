@@ -10,7 +10,7 @@ library("coin")
 gen_dat <- function(n = 5e3, parmD = 0, parmY = c(-0.5, 1), discreteD = TRUE,
                     discreteE = TRUE, normalHDE = FALSE, conditional = FALSE,
                     discreteH = FALSE) {
-  O <- rnorm(n)
+  O <- runif(n, min = -3, max = 3)
   E <- if (discreteE) sample(c(-1, 1), n, TRUE) else rnorm(n)
   H <- if (discreteH) sample(c(-1, 1), n, TRUE) else if (normalHDE) rnorm(n)
   else rt(n, df = 5) / 2
@@ -45,8 +45,8 @@ cor_obj <- \(b, Y, X, E) {
 
 # Run ---------------------------------------------------------------------
 
-pY1D1 <- integrate(\(o) plogis(0.5 + o) * dnorm(o), lower = -10, upper = 10)$value
-pY1D0 <- integrate(\(o) plogis(-0.5 + o) * dnorm(o), lower = -10, upper = 10)$value
+pY1D1 <- integrate(\(o) plogis(0.5 + o) * dunif(o, min = -3, max = 3), lower = -10, upper = 10)$value
+pY1D0 <- integrate(\(o) plogis(-0.5 + o) * dunif(o, min = -3, max = 3), lower = -10, upper = 10)$value
 
 log((pY1D1 * (1 - pY1D0)) / ((1 - pY1D1) * pY1D0))
 
