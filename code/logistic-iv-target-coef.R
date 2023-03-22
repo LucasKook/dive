@@ -8,8 +8,9 @@ library("coin")
 # FUNs --------------------------------------------------------------------
 
 gen_dat <- function(n = 5e3, parmD = 0, parmY = c(-0.5, 1), discreteD = TRUE,
-                    discreteE = TRUE, normalHDE = FALSE, conditional = TRUE,
+                    discreteE = TRUE, normalHDE = FALSE, conditional = FALSE,
                     discreteH = FALSE) {
+  O <- rnorm(n)
   E <- if (discreteE) sample(c(-1, 1), n, TRUE) else rnorm(n)
   H <- if (discreteH) sample(c(-1, 1), n, TRUE) else if (normalHDE) rnorm(n)
   else rt(n, df = 5) / 2
@@ -28,8 +29,8 @@ gen_dat <- function(n = 5e3, parmD = 0, parmY = c(-0.5, 1), discreteD = TRUE,
     pnorm(UD, mean = parmD + E)
   }
   Y <- if (conditional) as.numeric(parmY[1] + D * parmY[2] + H >= NY)
-  else as.numeric(plogis(parmY[1] + D * parmY[2]) >= UY)
-  data.frame(Y = Y, D = D, E = E, H = H)
+  else as.numeric(plogis(parmY[1] + D * parmY[2] + O) >= UY)
+  data.frame(Y = Y, D = D, E = E, H = H, O = O)
 }
 
 ind_obj <- \(b, Y, X, E, tstat = "quadratic", trafo = identity) {
@@ -42,6 +43,19 @@ cor_obj <- \(b, Y, X, E) {
   sum(fitted(lm(R ~ E))^2)
 }
 
+# Run ---------------------------------------------------------------------
+
+pY1D1 <- integrate(\(o) plogis(0.5 + o) * dnorm(o), lower = -10, upper = 10)$value
+pY1D0 <- integrate(\(o) plogis(-0.5 + o) * dnorm(o), lower = -10, upper = 10)$value
+
+log((pY1D1 * (1 - pY1D0)) / ((1 - pY1D1) * pY1D0))
+
+d0 <- gen_dat(parmD = 0, n = 1e4)
+d1 <- gen_dat(parmD = 1, n = 1e4)
+
+coef(glm(Y ~ D, data = d0, family = "binomial"))
+coef(glm(Y ~ D, data = d1, family = "binomial"))
+
 res <- replicate(5e1, {
   d0 <- gen_dat(parmD = 0)
   d1 <- gen_dat(parmD = 1)
@@ -49,10 +63,12 @@ res <- replicate(5e1, {
   c(
     GLM1 = mean(coef(glm(Y ~ D, data = d1, family = "binomial")) - c(-0.5, 1)),
     GLM0 = mean(coef(glm(Y ~ D, data = d0, family = "binomial")) - c(-0.5, 1)),
+    GLM1 = mean(coef(glm(Y ~ D + O, data = d1, family = "binomial")) - c(-0.5, 1, 1)),
+    GLM0 = mean(coef(glm(Y ~ D + O, data = d0, family = "binomial")) - c(-0.5, 1, 1)),
     # ORC1 = mean(coef(glm(Y ~ D + H, data = d1, family = "binomial")) - c(-0.5, 1, 1)),
     # ORC0 = mean(coef(glm(Y ~ D + H, data = d0, family = "binomial")) - c(-0.5, 1, 1)),
-    IND1 = mean(optim(c(-0.5, 1), ind_obj, Y = d1$Y, X = cbind(1, d1$D), E = d1$E)$par - c(-0.5, 1)),
-    IND0 = mean(optim(c(-0.5, 1), ind_obj, Y = d0$Y, X = cbind(1, d0$D), E = d0$E)$par - c(-0.5, 1)),
+    # IND1 = mean(optim(c(-0.5, 1), ind_obj, Y = d1$Y, X = cbind(1, d1$D), E = d1$E)$par - c(-0.5, 1)),
+    # IND0 = mean(optim(c(-0.5, 1), ind_obj, Y = d0$Y, X = cbind(1, d0$D), E = d0$E)$par - c(-0.5, 1)),
     COR1 = mean(optim(c(-0.5, 1), cor_obj, Y = d1$Y, X = cbind(1, d1$D), E = d1$E)$par - c(-0.5, 1)),
     COR0 = mean(optim(c(-0.5, 1), cor_obj, Y = d0$Y, X = cbind(1, d0$D), E = d0$E)$par - c(-0.5, 1))
   )
