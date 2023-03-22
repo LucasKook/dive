@@ -11,11 +11,13 @@ nsim <- 1e2
 ### Defaults
 oparm <- c("1" = -0.5, "D" = 1, "H" = 1)
 tparmD <- 1
-tcond <- FALSE
+tcond <- TRUE
 tdiscrD <- TRUE
 tdiscrE <- TRUE
-tdiscrH <- FALSE
 tnormalH <- FALSE
+
+# Should remain TRUE for computing the oracle (conditional case)
+tdiscrH <- TRUE
 
 ### Oracle
 if (tcond) {

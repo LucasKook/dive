@@ -7,7 +7,7 @@ library("coin")
 
 # FUNs --------------------------------------------------------------------
 
-gen_dat <- function(n = 5e4, parmD = 0, parmY = c(-0.5, 1), discreteD = TRUE,
+gen_dat <- function(n = 1e3, parmD = 0, parmY = c(-0.5, 1), discreteD = TRUE,
                     discreteE = TRUE, normalHDE = FALSE, conditional = FALSE,
                     discreteH = FALSE) {
   E <- if (discreteE) sample(c(-1, 1), n, TRUE) else rnorm(n)
