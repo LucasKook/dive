@@ -170,10 +170,10 @@ pd <- nd0 %>%
   )) %>% pivot_longer(DTE:DOK, names_to = "type", values_to = "est") %>%
   mutate(type = factor(type, levels = c("DTE", "QTE", "TTE", "RTE", "DOK", "RPD")))
 
-ggplot(pd, aes(x = surv, y = est, color = method)) +
+ggplot(pd %>% filter(type %in% c("DTE", "QTE", "TTE", "DOK")), aes(x = surv, y = est, color = method)) +
   geom_line() +
   facet_wrap(~ type, scales = "free", nrow = 2) +
   labs(x = "time", y = "Estimate") +
   scale_color_brewer(palette = "Dark2")
 
-ggsave(file.path(odir, "dte.pdf"), height = 6, width = 8)
+ggsave(file.path(odir, "dte.pdf"), height = 6, width = 7)
