@@ -32,6 +32,12 @@ if (tcond) {
 
 # FUNs --------------------------------------------------------------------
 
+clipU <- function(x, eps = 1e-6) {
+  x[x == 0] <- eps
+  x[x == 1] <- 1 - eps
+  x
+}
+
 gen_dat <- function(n = tn, parmD = tparmD, parmY = oparm[1:2],
                     discreteD = tdiscrD, discreteE = tdiscrE,
                     normalHDE = tnormalH, conditional = tcond,
@@ -44,8 +50,8 @@ gen_dat <- function(n = tn, parmD = tparmD, parmY = oparm[1:2],
   gD <- H + ND
   gY <- H + NY
   g2u <- if (normalHDE) \(...) {\(g) pnorm(g, sd = sqrt(2))} else \(g) ecdf(g)
-  UD <- g2u(gD)(gD)
-  UY <- g2u(gY)(gY)
+  UD <- clipU(g2u(gD)(gD))
+  UY <- clipU(g2u(gY)(gY))
   D <- if (discreteD) {
     if (conditional) as.numeric(plogis(parmD * E + parmH * H) <= ND)
     else as.numeric(plogis(parmD + E) <= UD)
