@@ -13,7 +13,7 @@ library("coin")
 
 gen_dat <- function(n = 1e3, doD = FALSE, nfine = 1e6) {
   ### Instrument
-  Z <- rt(n, df = 5)
+  Z <- sample(0:1, n, TRUE) # rt(n, df = 5)
   ### Hidden
   fH <- rt(nfine, df = 5)
   H <- rt(n, df = 5)
