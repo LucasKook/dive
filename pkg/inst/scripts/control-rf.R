@@ -11,31 +11,38 @@ library("coin")
 
 # FUNs --------------------------------------------------------------------
 
-clipU <- function(x, eps = 1e-6) {
-  x[x == 0] <- eps
-  x[x == 1] <- 1 - eps
-  x
-}
-
-gen_dat <- function(n = 2e3, doD = FALSE) {
+gen_dat <- function(n = 1e3, doD = FALSE, nfine = 1e6) {
   ### Instrument
   Z <- rt(n, df = 5)
   ### Hidden
+  fH <- rt(nfine, df = 5)
   H <- rt(n, df = 5)
   ### Treatment
-  ND <- rlogis(n)
-  gHD <- (1 - doD) * H + ND
-  UD <- clipU(ecdf(gHD)(gHD))
-  D <- as.numeric(plogis(Z) >= UD)
+  # gD <- (1 - doD) * fH + rlogis(nfine)
+  # UD <- dive:::.clip(ecdf(gD)((1 - doD) * H + rlogis(n)))
+  UD <- runif(n)
+  D <- as.numeric(plogis(Z + H) >= UD)
   ### Response
-  NY <- rnorm(n)
-  gHY <- H + NY
-  UY <- clipU(ecdf(gHY)(gHY))
-  UY[UY == 0] <- 1e-6
-  UY[UY == 1] <- 1 - 1e-6
-  Y <- qnorm(UY, mean = D, sd = 1 + D)
+  # gY <- fH + rnorm(nfine)
+  # UY <- dive:::.clip(ecdf(gY)(H + rnorm(n)))
+  UY <- runif(n)
+  Y <- qnorm(UY, mean = D + H) # , sd = 1 + D)
   ### Return
   data.frame(Y = Y, D = D, Z = Z, H = H)
+}
+
+rfk <- function(rf, data, idx) {
+  preds <- predict(rf, data = d, type = "terminalNodes")
+  prox <- matrix(nrow = nrow(d), ncol = nrow(d))
+  for (i in idx) {
+    for (j in (1:nrow(d))[-idx]) {
+      prox[i, j] <- mean(preds$predictions[i, ] == preds$predictions[j, ])
+    }
+  }
+  rfw <- prox[idx,][,-idx]
+  rfw / matrix(pmax(colSums(rfw), .Machine$double.eps),
+               ncol = nrow(d) - length(idx),
+               nrow = length(idx), byrow = TRUE)
 }
 
 # Run ---------------------------------------------------------------------
@@ -43,31 +50,40 @@ gen_dat <- function(n = 2e3, doD = FALSE) {
 ### Generate data
 d <- gen_dat()
 learn <- seq_len(floor(nrow(d) / 2) + 1)
+test <- seq_len(nrow(d))[-learn]
 
 ### Fit RF for control function
+# cf <- glm(D ~ Z, data = d[learn,], family = "binomial")
+# preds <- predict(cf, type = "response", newdata = d)
+# d$ps <- d$D - 1 - preds
 cf <- ranger(D ~ Z, data = d[learn,], probability = TRUE)
-preds <- clipU(predict(cf, data = d)$predictions)
-d$ps <- d$D - preds[, 2]
+preds <- dive:::.clip(predict(cf, data = d)$predictions)
+d$ps <- d$D - 1 - preds[, 2]
+
+# coef(lm(Y ~ D + ps, data = d[-learn,]))["D"]
 
 ### Fit RF with control function prediction and compute RF weights for prediction
-rf <- randomForest(Y ~ D + ps, data = d[-learn,])
-rfw <- predict(rf, newdata = d, proximity = TRUE)$proximity[learn,][,-learn]
-rfw <- rfw / matrix(pmax(colSums(rfw), .Machine$double.eps),
-                    ncol = nrow(d) - length(learn),
-                    nrow = length(learn), byrow = TRUE)
+rf <- ranger(Y ~ D + ps, data = d[test,])
+rfw <- rfk(rf, d, test)
+
 
 # Predict and plot --------------------------------------------------------
 
-idx0 <- which(d$D[-learn] == 0)
-idx1 <- which(d$D[-learn] == 1)
+idx0 <- which(d$D[learn] == 0)
+idx1 <- which(d$D[learn] == 1)
 
-pcdf <- Vectorize(\(y, idx) c(t(rfw[, idx]) %*% as.numeric(d$Y[learn] <= y)), "y")
+pcdf <- Vectorize(\(y, idx) c(t(rfw[, idx]) %*% as.numeric(d$Y[test] <= y)), "y")
 ts <- seq(min(d$Y), max(d$Y), length.out = 1e2)
+
+gt <- Vectorize(\(y, idx, m = 0) pnorm(y, mean = m + d$H[idx]), "y")
 
 plot(ts, colMeans(pcdf(ts, idx0)), type = "l")
 lines(ts, colMeans(pcdf(ts, idx1)), type = "l", col = 2)
-lines(ts, pnorm(ts), lty = 2)
-lines(ts, pnorm(ts, mean = 1, sd = 2), lty = 2, col = 2)
+lines(ts, colMeans(gt(ts, idx0)), lty = 2)
+lines(ts, colMeans(gt(ts, idx1, m = 1)), #, sd = 2),
+      lty = 2, col = 2)
+
+legend("topleft", c("Truth", "Estimated"), lty = c(2, 1), bty = "n")
 
 # R <- Vectorize(\(y) mean(t(rfw) %*% as.numeric(d$Y[learn] <= y)))(d$Y[-learn])
 # independence_test(R ~ Z, data = d[-learn,])
