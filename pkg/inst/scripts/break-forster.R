@@ -76,10 +76,13 @@ op1 <- mean(d0$resp[d0$D == 1])
 S1 <- glm(D ~ Z, data = d1, family = "binomial")
 d1$R <- d1$D - predict(S1, type = "response")
 S2 <- glm(Y ~ D + X + R, data = d1, family = "binomial")
-S2p <- predict(S2, type = "response")
-OR(mean(S2p[d1$D == 1]), mean(S2p[d1$D == 0]), log)
+nd0 <- nd1 <- d1
+nd0$D <- 0
+nd1$D <- 1
+S2p0 <- predict(S2, newdata = nd0, type = "response")
+S2p1 <- predict(S2, newdata = nd1, type = "response")
+OR(mean(S2p0), mean(S2p1), log)
 # (NCTL <- unname(coef(S2)[2]))
-
 
 # Nonparametric control function ------------------------------------------
 
@@ -89,11 +92,10 @@ cf <- ranger(D ~ Z, data = d, probability = TRUE)
 preds <- predict(cf, data = d)$predictions
 d$ps <- d$D - preds[, 1]
 rf <- ranger(Y ~ D + ps, data = d, probability = TRUE)
-rfp <- predict(rf, data = d)$pred[, 1]
-idx0 <- which(d$D == 0)
-idx1 <- which(d$D == 1)
-p0 <- mean(rfp[idx0])
-p1 <- mean(rfp[idx1])
+rfp0 <- predict(rf, data = nd0)$pred[, 1]
+rfp1 <- predict(rf, data = nd1)$pred[, 1]
+p0 <- mean(rfp0)
+p1 <- mean(rfp1)
 
 # Output ------------------------------------------------------------------
 

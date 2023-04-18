@@ -91,15 +91,18 @@ m1 <- BoxCox(Y | ps ~ 1, data = d1, subset = d1$D == 1, order = 10)
 lines(ys, rowMeans(predict(m0, type = "distribution", newdata = d[,-1], q = ys)), lty = 3)
 lines(ys, rowMeans(predict(m1, type = "distribution", newdata = d[,-1], q = ys)), lty = 3, col = 2)
 
+# TODO: Do we get conditional mean like this?
+
 # Results -----------------------------------------------------------------
 
-idx0 <- which(d$D == 0)
-idx1 <- which(d$D == 1)
+nd0 <- nd1 <- d1
+nd0$D <- 0
+nd1$D <- 1
+p0 <- predict(rf, data = nd0, quantiles = qs <- seq(0, 1, length.out = 1e3), type = "quantiles")
+p1 <- predict(rf, data = nd1, quantiles = qs, type = "quantiles")
 
-preds <- predict(rf, data = d1, quantiles = qs <- seq(0, 1, length.out = 1e3),
-                 type = "quantiles")
-p0 <- colMeans(preds$predictions[idx0,])
-p1 <- colMeans(preds$predictions[idx1,])
+p0 <- colMeans(p0$predictions)
+p1 <- colMeans(p1$predictions)
 
 lines(p0, qs)
 lines(p1, qs, col = 2)

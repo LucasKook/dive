@@ -92,16 +92,14 @@ d$ps <- d$D - preds[, 1]
 # d$ps <- d$D - preds
 
 ### Fit RF with control function prediction and compute RF weights for prediction
-rf <- ranger(Y ~ D + ps, data = d, probability = TRUE)
-rfp <- predict(rf, data = d)$pred[, 1]
+rf <- ranger(Y ~ D + ps, data = d)
+nd0 <- nd1 <-  d
+nd0$D <- 0
+nd1$D <- 1
+p0 <- mean(predict(rf, data = nd0)$pred)
+p1 <- mean(predict(rf, data = nd1)$pred)
 
 # Results -----------------------------------------------------------------
-
-idx0 <- which(d$D == 0)
-idx1 <- which(d$D == 1)
-
-p0 <- mean(rfp[idx0])
-p1 <- mean(rfp[idx1])
 
 ### ATE
 DM <- matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)
@@ -111,3 +109,4 @@ c(ORACLE = oATE, RFCF = p1 - p0, COR = diff(plogis(DM %*% COR)),
 ### OR
 c(ORACLE = oOR, RFCF = ((p1 * (1 - p0)) / ((1 - p1) * p0)),
   COR = exp(COR[2]), IND = exp(IND[2]), NCTL = NCTL)
+
