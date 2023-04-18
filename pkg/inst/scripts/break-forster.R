@@ -39,6 +39,10 @@ ind_obj <- \(b, Y, X, E, tstat = "quadratic", trafo = identity) {
   trafo(statistic(independence_test(R ~ E, teststat = tstat)))
 }
 
+OR <- \(p1, p2, cf = identity) {
+  cf((p1 * (1 - p2)) / ((1 - p1) * p2))
+}
+
 # Sanity checks -----------------------------------------------------------
 
 # Data under intervention on D (d0) and observational (d)
@@ -50,7 +54,7 @@ mDXH <- glm(Y ~ D + X + H, data = d0, family = "binomial")
 d0$resp <- predict(mDXH, newdata = d0, type = "response")
 op0 <- mean(d0$resp[d0$D == 0])
 op1 <- mean(d0$resp[d0$D == 1])
-(oOR <- log((op1 * (1 - op0)) / ((1 - op1) * op0)))
+(oOR <- OR(op1, op0, log))
 
 # not causal conditional OR (b/c non-collapsible)
 (coef(mDX <- glm(Y ~ D + X, data = d0, family = "binomial"))["D"])
@@ -71,8 +75,11 @@ op1 <- mean(d0$resp[d0$D == 1])
 ### Naive control function (parametric, breaks down for more complex examples)
 S1 <- glm(D ~ Z, data = d1, family = "binomial")
 d1$R <- d1$D - predict(S1, type = "response")
-S2 <- glm(Y ~ D + R, data = d1, family = "binomial")
-(NCTL <- unname(coef(S2)[2]))
+S2 <- glm(Y ~ D + X + R, data = d1, family = "binomial")
+S2p <- predict(S2, type = "response")
+OR(mean(S2p[d1$D == 1]), mean(S2p[d1$D == 0]), log)
+# (NCTL <- unname(coef(S2)[2]))
+
 
 # Nonparametric control function ------------------------------------------
 
