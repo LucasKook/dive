@@ -50,11 +50,20 @@ d0 <- gen_dat(1e5, doD = TRUE)
 d1 <- gen_dat(1e5, doD = FALSE)
 
 ### Oracle
-mDXH <- glm(Y ~ D + X + H, data = d0, family = "binomial")
-d0$resp <- predict(mDXH, newdata = d0, type = "response")
-op0 <- mean(d0$resp[d0$D == 0])
-op1 <- mean(d0$resp[d0$D == 1])
-(oOR <- OR(op1, op0, log))
+mDXH0 <- glm(Y ~ D + X + H, data = d0, family = "binomial")
+nd0 <- nd1 <- d1
+nd0$D <- 0
+nd1$D <- 1
+(OR(mean(predict(mDXH0, newdata = nd1, type = "response")),
+           mean(predict(mDXH0, newdata = nd0, type = "response")), log))
+
+# Include hidden confounder and marginalize
+mDXH <- glm(Y ~ D + X + H, data = d1, family = "binomial")
+nd0 <- nd1 <- d1
+nd0$D <- 0
+nd1$D <- 1
+(oOR <- OR(mean(predict(mDXH, newdata = nd1, type = "response")),
+           mean(predict(mDXH, newdata = nd0, type = "response")), log))
 
 # not causal conditional OR (b/c non-collapsible)
 (coef(mDX <- glm(Y ~ D + X, data = d0, family = "binomial"))["D"])
@@ -64,11 +73,7 @@ op1 <- mean(d0$resp[d0$D == 1])
 # conditional causal OR
 # exp(coef(mDH <- glm(Y ~ D + X + H, data = d0, family = "binomial"))["D"])
 
-### Under doD should return the causal OR
-(COR0 <- optim(c(0, 0), cor_obj, Y = d0$Y, X = cbind(1, d0$D), E = d0$Z)$par[2])
-(IND0 <- optim(c(0, 0), ind_obj, Y = d0$Y, X = cbind(1, d0$D), E = d0$Z)$par[2])
-
-### Even under obs should return the causal OR
+### Under obs should return the causal conditional OR
 (COR <- optim(c(0, 0), cor_obj, Y = d1$Y, X = cbind(1, d1$D), E = d1$Z)$par[2])
 (IND <- optim(c(0, 0), ind_obj, Y = d1$Y, X = cbind(1, d1$D), E = d1$Z)$par[2])
 
@@ -81,17 +86,18 @@ nd0$D <- 0
 nd1$D <- 1
 S2p0 <- predict(S2, newdata = nd0, type = "response")
 S2p1 <- predict(S2, newdata = nd1, type = "response")
-OR(mean(S2p0), mean(S2p1), log)
-# (NCTL <- unname(coef(S2)[2]))
+(NCTL <- OR(mean(S2p1), mean(S2p0), log))
+# (NCTL <- unname(coef(S2)[2])) # non-collapsible!
 
 # Nonparametric control function ------------------------------------------
 
-### Fit RF for control function
-d <- d1
-cf <- ranger(D ~ Z, data = d, probability = TRUE)
-preds <- predict(cf, data = d)$predictions
-d$ps <- d$D - preds[, 1]
-rf <- ranger(Y ~ D + ps, data = d, probability = TRUE)
+cf <- ranger(D ~ Z, data = d1, probability = TRUE)
+preds <- predict(cf, data = d1)$predictions
+d1$ps <- d1$D - preds[, 1]
+rf <- ranger(Y ~ D + X + ps, data = d1, probability = TRUE)
+nd0 <- nd1 <- d1
+nd0$D <- 0
+nd1$D <- 1
 rfp0 <- predict(rf, data = nd0)$pred[, 1]
 rfp1 <- predict(rf, data = nd1)$pred[, 1]
 p0 <- mean(rfp0)
@@ -101,5 +107,5 @@ p1 <- mean(rfp1)
 
 c(
   ORACLE = oOR, mD = unname(coef(mD)["D"]), mDX = unname(coef(mDX)["D"]),
-  COR = COR, IND = IND, NCTL = NCTL, RFCF = log((p1 * (1 - p0)) / ((1 - p1) * p0))
+  COR = COR, IND = IND, NCTL = NCTL, RFCF = OR(p1, p0, log)
 )
