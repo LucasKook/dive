@@ -31,21 +31,6 @@ gen_dat <- function(n = 1e3, doD = FALSE, nfine = 1e6) {
   data.frame(Y = Y, D = D, Z = Z, H = H)
 }
 
-rfk <- function(rf, data) {
-  preds <- predict(rf, data = d, type = "terminalNodes")
-  inbag <- simplify2array(rf$inbag.counts)
-  rfw <- matrix(nrow = nrow(d), ncol = nrow(d))
-  for (i in 1:nrow(d)) {
-    for (j in (1:nrow(d))) {
-      tree_idx <- inbag[i, ] == 0 & inbag[j, ] == 0
-      rfw[i, j] <- sum(preds$predictions[i, tree_idx] ==
-                          preds$predictions[j, tree_idx]) / sum(tree_idx)
-    }
-  }
-  rfw / matrix(pmax(colSums(rfw), .Machine$double.eps),
-               ncol = nrow(d), nrow = nrow(d), byrow = TRUE)
-}
-
 cor_obj <- \(b, Y, X, E) {
   R <- (Y - plogis(X %*% b))
   sum(fitted(lm(R ~ E))^2)
@@ -96,39 +81,33 @@ NCTL <- unname(exp(coef(S2)[2]))
 
 # Nonparametric control function ------------------------------------------
 
-### Generate data
-# learn <- seq_len(floor(nrow(d) / 2) + 1)
-# test <- seq_len(nrow(d))[-learn]
-
 ### Fit RF for control function
-d <- d1[1:1e3,]
-dZ <- d1[-1:-1e3,]
-cf <- ranger(D ~ Z, data = dZ, probability = TRUE)
+d <- d1
+cf <- ranger(D ~ Z, data = d, probability = TRUE)
 preds <- predict(cf, data = d)$predictions
 d$ps <- d$D - preds[, 1]
+# Virtually identical to RF-based PS
 # cf <- glm(D ~ Z, data = dZ, family = "binomial")
 # preds <- predict(cf, newdata = d, type = "response")
 # d$ps <- d$D - preds
 
 ### Fit RF with control function prediction and compute RF weights for prediction
-rf <- ranger(Y ~ D + ps, data = d, keep.inbag = TRUE)
-rfw <- rfk(rf, d)
+rf <- ranger(Y ~ D + ps, data = d, probability = TRUE)
+rfp <- predict(rf, data = d)$pred[, 1]
 
 # Results -----------------------------------------------------------------
 
 idx0 <- which(d$D == 0)
 idx1 <- which(d$D == 1)
 
-pcdf <- Vectorize(\(y, idx) c(t(rfw[, idx]) %*% as.numeric(d$Y <= y)), "y")
-
-p0 <- colMeans(pcdf(0, idx0))
-p1 <- colMeans(pcdf(0, idx1))
+p0 <- mean(rfp[idx0])
+p1 <- mean(rfp[idx1])
 
 ### ATE
 DM <- matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)
-c(ORACLE = oATE, CF = p0 - p1, COR = diff(plogis(DM %*% COR)),
+c(ORACLE = oATE, RFCF = p1 - p0, COR = diff(plogis(DM %*% COR)),
   IND = diff(plogis(DM %*% IND)))
 
 ### OR
-c(ORACLE = oOR, CF = 1 / ((p1 * (1 - p0)) / ((1 - p1) * p0)),
+c(ORACLE = oOR, RFCF = ((p1 * (1 - p0)) / ((1 - p1) * p0)),
   COR = exp(COR[2]), IND = exp(IND[2]), NCTL = NCTL)

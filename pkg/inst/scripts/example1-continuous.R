@@ -87,8 +87,8 @@ rfw <- rfk(rf, d) # TODO: Fix, biased even when including true H
 
 # TRAM --------------------------------------------------------------------
 
-m0 <- BoxCox(Y | ps ~ 1, data = d, subset = d$D == 0, order = 10, extrapolate = TRUE)
-m1 <- BoxCox(Y | ps ~ 1, data = d, subset = d$D == 1, order = 10, extrapolate = TRUE)
+m0 <- BoxCox(Y | ps ~ 1, data = d, subset = d$D == 0, order = 10)
+m1 <- BoxCox(Y | ps ~ 1, data = d, subset = d$D == 1, order = 10)
 
 lines(ys, rowMeans(predict(m0, type = "distribution", newdata = d[,-1], q = ys)), lty = 3)
 lines(ys, rowMeans(predict(m1, type = "distribution", newdata = d[,-1], q = ys)), lty = 3, col = 2)
