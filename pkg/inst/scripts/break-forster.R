@@ -12,6 +12,7 @@ library("coin")
 # FUNs --------------------------------------------------------------------
 
 gen_dat <- function(n = 1e3, doD = FALSE, nfine = 1e6) {
+  prs <- rnorm(6)
   ### Instrument
   Z <- sample(c(-1, 1), n, TRUE) # rt(n, df = 5)
   ### Hidden
@@ -21,10 +22,10 @@ gen_dat <- function(n = 1e3, doD = FALSE, nfine = 1e6) {
   X <- rt(n, df = 10)
   ### Treatment
   UD <- runif(n)
-  D <- as.numeric(plogis(Z + (1 - doD) * H + X) >= UD)
+  D <- as.numeric(plogis(prs[1] * Z + prs[2] * (1 - doD) * H + prs[3] * X) >= UD)
   ### Response
   UY <- runif(n)
-  Y <- as.numeric(plogis(D + H + X) >= UY)
+  Y <- as.numeric(plogis(prs[4] * D + prs[5] * H + prs[5] * X) >= UY)
   ### Return
   data.frame(Y = Y, D = D, Z = Z, X = X, H = H)
 }
@@ -51,7 +52,7 @@ d1 <- gen_dat(1e5, doD = FALSE)
 
 ### Oracle
 mDXH0 <- glm(Y ~ D + X + H, data = d0, family = "binomial")
-nd0 <- nd1 <- d1
+nd0 <- nd1 <- d0
 nd0$D <- 0
 nd1$D <- 1
 (OR(mean(predict(mDXH0, newdata = nd1, type = "response")),
@@ -74,8 +75,12 @@ nd1$D <- 1
 # exp(coef(mDH <- glm(Y ~ D + X + H, data = d0, family = "binomial"))["D"])
 
 ### Under obs should return the causal conditional OR
-(COR <- optim(c(0, 0), cor_obj, Y = d1$Y, X = cbind(1, d1$D), E = d1$Z)$par[2])
-(IND <- optim(c(0, 0), ind_obj, Y = d1$Y, X = cbind(1, d1$D), E = d1$Z)$par[2])
+pCOR <- optim(c(0, 0, 0), cor_obj, Y = d1$Y, X = cbind(1, d1$D, d1$X), E = d1$Z)$par
+(COR <- OR(mean(plogis(cbind(1, 1, d1$X) %*% pCOR)),
+           mean(plogis(cbind(1, 0, d1$X) %*% pCOR)), log))
+(pIND <- optim(c(0, 0, 0), ind_obj, Y = d1$Y, X = cbind(1, d1$D, d1$X), E = d1$Z)$par)
+(IND <- OR(mean(plogis(cbind(1, 1, d1$X) %*% pIND)),
+           mean(plogis(cbind(1, 0, d1$X) %*% pIND)), log))
 
 ### Naive control function (parametric, breaks down for more complex examples)
 S1 <- glm(D ~ Z, data = d1, family = "binomial")
