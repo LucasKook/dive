@@ -30,21 +30,21 @@ gen_dat <- function(n = 1e3, doD = FALSE, nfine = 1e6) {
   data.frame(Y = Y, D = D, Z = Z, H = H)
 }
 
-rfk <- function(rf, data) {
-  preds <- predict(rf, data = d, type = "terminalNodes")
-  inbag <- simplify2array(rf$inbag.counts)
-  rfw <- matrix(0, nrow = nrow(d), ncol = nrow(d))
-  for (i in 1:nrow(d)) {
-    for (j in 1:i) {
-      tree_idx <- inbag[i, ] == 0 & inbag[j, ] == 0
-      rfw[i, j] <- sum(preds$predictions[i, tree_idx] ==
-                         preds$predictions[j, tree_idx]) / sum(tree_idx)
-    }
-  }
-  rfw <- rfw + t(rfw - diag(nrow = nrow(d)))
-  rfw / matrix(pmax(colSums(rfw), .Machine$double.eps),
-               ncol = nrow(d), nrow = nrow(d), byrow = TRUE)
-}
+# rfk <- function(rf, data) {
+#   preds <- predict(rf, data = d, type = "terminalNodes")
+#   inbag <- simplify2array(rf$inbag.counts)
+#   rfw <- matrix(0, nrow = nrow(d), ncol = nrow(d))
+#   for (i in 1:nrow(d)) {
+#     for (j in 1:i) {
+#       tree_idx <- inbag[i, ] == 0 & inbag[j, ] == 0
+#       rfw[i, j] <- sum(preds$predictions[i, tree_idx] ==
+#                          preds$predictions[j, tree_idx]) / sum(tree_idx)
+#     }
+#   }
+#   rfw <- rfw + t(rfw - diag(nrow = nrow(d)))
+#   rfw / matrix(pmax(colSums(rfw), .Machine$double.eps),
+#                ncol = nrow(d), nrow = nrow(d), byrow = TRUE)
+# }
 
 # Oracle ------------------------------------------------------------------
 
@@ -72,23 +72,21 @@ d1 <- gen_dat(1e5, doD = FALSE)
 # Nonparametric control function ------------------------------------------
 
 ### Fit RF for control function
-d <- d1[1:1e3,]
-dZ <- d1[-1:-1e3,]
-cf <- ranger(D ~ Z, data = dZ, probability = TRUE)
-preds <- predict(cf, data = d)$predictions
-d$ps <- d$D - preds[, 1]
+cf <- ranger(D ~ Z, data = d1, probability = TRUE)
+preds <- predict(cf, data = d1)$predictions
+d1$ps <- d1$D - preds[, 1]
 # cf <- glm(D ~ Z, data = dZ, family = "binomial")
 # preds <- predict(cf, newdata = d, type = "response")
 # d$ps <- d$D - preds
 
 ### Fit RF with control function prediction and compute RF weights for prediction
-rf <- ranger(Y ~ D + ps, data = d, keep.inbag = TRUE)
-rfw <- rfk(rf, d) # TODO: Fix, biased even when including true H
+rf <- ranger(Y ~ D + ps, data = d1, quantreg = TRUE)
+# rfw <- rfk(rf, d)
 
 # TRAM --------------------------------------------------------------------
 
-m0 <- BoxCox(Y | ps ~ 1, data = d, subset = d$D == 0, order = 10)
-m1 <- BoxCox(Y | ps ~ 1, data = d, subset = d$D == 1, order = 10)
+m0 <- BoxCox(Y | ps ~ 1, data = d1, subset = d1$D == 0, order = 10)
+m1 <- BoxCox(Y | ps ~ 1, data = d1, subset = d1$D == 1, order = 10)
 
 lines(ys, rowMeans(predict(m0, type = "distribution", newdata = d[,-1], q = ys)), lty = 3)
 lines(ys, rowMeans(predict(m1, type = "distribution", newdata = d[,-1], q = ys)), lty = 3, col = 2)
@@ -98,10 +96,10 @@ lines(ys, rowMeans(predict(m1, type = "distribution", newdata = d[,-1], q = ys))
 idx0 <- which(d$D == 0)
 idx1 <- which(d$D == 1)
 
-pcdf <- Vectorize(\(y, idx) c(t(rfw[, idx]) %*% as.numeric(d$Y <= y)), "y")
+preds <- predict(rf, data = d1, quantiles = qs <- seq(0, 1, length.out = 1e3),
+                 type = "quantiles")
+p0 <- colMeans(preds$predictions[idx0,])
+p1 <- colMeans(preds$predictions[idx1,])
 
-p0 <- colMeans(pcdf(ys, idx0))
-p1 <- colMeans(pcdf(ys, idx1))
-
-lines(ys, p0)
-lines(ys, p1, col = 2)
+lines(p0, qs)
+lines(p1, qs, col = 2)
