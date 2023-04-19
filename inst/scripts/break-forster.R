@@ -1,7 +1,7 @@
 # Distributional random forest with control function
 # LK March 2023
 
-set.seed(241068)
+# set.seed(241068)
 
 # Dependencies ------------------------------------------------------------
 
@@ -25,7 +25,7 @@ gen_dat <- function(n = 1e3, doD = FALSE, nfine = 1e6) {
   D <- as.numeric(plogis(prs[1] * Z + prs[2] * (1 - doD) * H + prs[3] * X) >= UD)
   ### Response
   UY <- runif(n)
-  Y <- as.numeric(plogis(prs[4] * D + prs[5] * H + prs[5] * X) >= UY)
+  Y <- as.numeric(plogis(prs[4] * D + prs[5] * H + prs[5] * prs[6] * X) >= UY)
   ### Return
   data.frame(Y = Y, D = D, Z = Z, X = X, H = H)
 }
