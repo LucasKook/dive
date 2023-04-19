@@ -24,68 +24,59 @@ op0 <- attr(d1, "p0")
 op1 <- attr(d1, "p1")
 
 ### Oracle ATE (collapsible)
-(oATE <- op1 - op0)
+(oATE <- ATE(op1, op0))
 
 ### Oracle OR (non-collapsible)
-(oOR <- OR(op1, op0))
+(oOR <- OR(op1, op0, log))
 
 ### causal OR b/c nonparametric (everything binary)
-exp(coef(mD <- glm(Y ~ D, data = d0, family = "binomial"))["D"])
+coef(mD <- glm(Y ~ D, data = d0, family = "binomial"))["D"]
 diff(predict(mD, newdata = data.frame(D = c(0, 1)), type = "response"))
 # conditional causal OR
 # exp(coef(mDH <- glm(Y ~ D + H, data = d0, family = "binomial"))["D"])
 # diff(predict(mDH, newdata = data.frame(D = c(1, 0), H = 0), type = "response"))
 
 ### Under doD should return the causal OR
-exp(COR0 <- optim(c(0, 0), cor_obj, Y = d0$Y, X = cbind(1, d0$D), E = d0$Z)$par)[2]
-exp(IND0 <- optim(c(0, 0), ind_obj, Y = d0$Y, X = cbind(1, d0$D), E = d0$Z)$par)[2]
+parCOR0 <- indep_iv(Y ~ D, ~ Z, d0, "COR")
+pCOR0 <- indep_marginal_predictions(parCOR0, d0)
+COR0 <- OR(pCOR0[, "p1"], pCOR0[, "p0"], log)
+parIND0 <- indep_iv(Y ~ D, ~ 0 + Z, d0, "IND")
+pIND0 <- indep_marginal_predictions(parIND0, d0)
+IND0 <- OR(pIND0[, "p1"], pIND0[, "p0"], log)
 
 ### Even under obs should return the causal OR
-exp(COR <- optim(c(0, 0), cor_obj, Y = d1$Y, X = cbind(1, d1$D), E = d1$Z)$par)[2]
-exp(IND <- optim(c(0, 0), ind_obj, Y = d1$Y, X = cbind(1, d1$D), E = d1$Z)$par)[2]
+parCOR <- indep_iv(Y ~ D, ~ Z, d1, "COR")
+pCOR <- indep_marginal_predictions(parCOR, d1)
+COR <- OR(pCOR[, "p1"], pCOR[, "p0"], log)
+parIND <- indep_iv(Y ~ D, ~ 0 + Z, d1, "IND")
+pIND <- indep_marginal_predictions(parIND, d1)
+IND <- OR(pIND[, "p1"], pIND[, "p0"], log)
 
 ### Naive control function (parametric, breaks down for more complex examples)
 S1 <- glm(D ~ Z, data = d1, family = "binomial")
 d1$R <- d1$D - predict(S1, type = "response")
-
-# New data for prediction
-nd0 <- nd1 <-  d1
-nd0$D <- 0
-nd1$D <- 1
-
-S2 <- glm(Y ~ D + R, data = d1, family = "binomial")
-NCTL <- OR(mean(predict(S2, newdata = nd1, type = "response")),
-           mean(predict(S2, newdata = nd0, type = "response")))
+S2 <- glm_marginal_predictions(Y ~ D + R, data = d1)
+NCTL <- OR(S2[, "p1"], S2[, "p0"], log)
 
 # Nonparametric control function ------------------------------------------
 
 ### Fit RF for control function
-cf <- ranger(D ~ Z, data = d1, probability = TRUE)
+cf <- ranger(factor(D) ~ Z, data = d1, probability = TRUE)
 preds <- predict(cf, data = d1)$predictions
-d1$ps <- d1$D - preds[, 1]
-
+d1$ps <- d1$D - preds[, 2]
 # Virtually identical to RF-based PS
 # cf <- glm(D ~ Z, data = dZ, family = "binomial")
 # preds <- predict(cf, newdata = d, type = "response")
 # d$ps <- d$D - preds
 
-# New data for prediction
-nd0 <- nd1 <-  d1
-nd0$D <- 0
-nd1$D <- 1
-
-### Fit RF with control function prediction and compute RF weights for prediction
-rf <- ranger(Y ~ D + ps, data = d1)
-p0 <- mean(predict(rf, data = nd0)$pred)
-p1 <- mean(predict(rf, data = nd1)$pred)
+pRF <- ranger_marginal_predictions(factor(Y) ~ D + ps, d1)
+RF <- OR(pRF[, "p1"], pRF[, "p0"], log)
 
 # Results -----------------------------------------------------------------
 
 ### ATE
-DM <- matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)
-c(ORACLE = oATE, RFCF = p1 - p0, COR = diff(plogis(DM %*% COR)),
-  IND = diff(plogis(DM %*% IND)))
+c(ORACLE = oATE, RFCF = diff(-c(pRF)), COR = diff(-c(pCOR)[1:2]),
+  IND = diff(-c(pIND)[1:2]), NCTL = diff(-c(S2)[1:2]))
 
 ### OR
-c(ORACLE = oOR, RFCF = ((p1 * (1 - p0)) / ((1 - p1) * p0)),
-  COR = exp(COR[2]), IND = exp(IND[2]), NCTL = NCTL)
+c(ORACLE = oOR, RFCF = RF, COR = COR, IND = IND, NCTL = NCTL)

@@ -57,8 +57,8 @@ ranger_marginal_predictions <- function(fml, data, trt = "D", trafo = mean) {
   nd0 <- nd1 <- data
   nd0[trt] <- 0
   nd1[trt] <- 1
-  rfp0 <- predict(rf, data = nd0)$pred[, 1]
-  rfp1 <- predict(rf, data = nd1)$pred[, 1]
+  rfp0 <- predict(rf, data = nd0)$pred[, 2]
+  rfp1 <- predict(rf, data = nd1)$pred[, 2]
   cbind(p1 = trafo(rfp1), p0 = trafo(rfp0))
 }
 

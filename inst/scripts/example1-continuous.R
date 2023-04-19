@@ -11,7 +11,7 @@ devtools::load_all()
 
 # Data --------------------------------------------------------------------
 
-n <- 1e4
+n <- 1e5
 
 # Data under intervention on D (d0) and observational (d)
 d0 <- dgp_ex1_cont(n, doD = TRUE)
@@ -52,11 +52,8 @@ rf <- ranger(Y ~ D + ps, data = d1, quantreg = TRUE)
 nd0 <- nd1 <- d1
 nd0$D <- 0
 nd1$D <- 1
-p0 <- predict(rf, data = nd0, quantiles = qs <- seq(0, 1, length.out = 1e3), type = "quantiles")
-p1 <- predict(rf, data = nd1, quantiles = qs, type = "quantiles")
+p0 <- predict(rf, data = nd0, quantiles = qs <- seq(0, 1, length.out = 1e3), type = "quantiles")$pred
+p1 <- predict(rf, data = nd1, quantiles = qs, type = "quantiles")$pred
 
-p0 <- colMeans(p0$predictions)
-p1 <- colMeans(p1$predictions)
-
-lines(p0, qs)
-lines(p1, qs, col = 2)
+lines(colMeans(p0), qs)
+lines(colMeans(p1), qs, col = 2)
