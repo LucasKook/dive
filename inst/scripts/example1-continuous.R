@@ -7,31 +7,20 @@ set.seed(241068)
 
 library("ranger")
 library("tram")
+devtools::load_all()
 
-# FUNs --------------------------------------------------------------------
+# Data --------------------------------------------------------------------
 
-gen_dat <- function(n = 1e3, doD = FALSE, nfine = 1e6) {
-  ### Instrument
-  Z <- sample(c(-1, 1), n, TRUE) # rt(n, df = 5)
-  ### Hidden
-  fH <- rt(nfine, df = 5)
-  H <- rt(n, df = 5)
-  ### Treatment
-  UD <- runif(n)
-  D <- as.numeric(plogis(Z + (1 - doD) * H) >= UD)
-  ### Response
-  UY <- runif(n)
-  Y <- qnorm(UY, mean = D + H, sd = 1 + abs(D + H))
-  ### Return
-  data.frame(Y = Y, D = D, Z = Z, H = H)
-}
+n <- 1e4
 
-# Oracle ------------------------------------------------------------------
+# Data under intervention on D (d0) and observational (d)
+d0 <- dgp_ex1_cont(n, doD = TRUE)
+d1 <- dgp_ex1_cont(n, doD = FALSE)
 
-oracle_distr <- Vectorize(\(y, d = 0) {
-  integrate(\(x) pnorm(y, mean = d + x, sd = 1 + abs(d + x)) * dt(x, df = 5),
-            -20, 20)$value
-}, "y")
+# plot(ecdf(d0$Y[d0$D == 0]), add = TRUE, lty = 2, cex = 0.1)
+# plot(ecdf(d0$Y[d0$D == 1]), add = TRUE, col = 2, lty = 2, cex = 0.1)
+
+oracle_distr <- attr(d1, "odist")
 
 ys <- seq(-13, 13, length.out = 1e3)
 F1 <- oracle_distr(ys, d = 1)
@@ -39,15 +28,6 @@ F0 <- oracle_distr(ys, d = 0)
 
 plot(ys, F0, type = "l", lty = 2)
 lines(ys, F1, type = "l", col = 2, lty = 2)
-
-# Sanity checks -----------------------------------------------------------
-
-# Data under intervention on D (d0) and observational (d)
-d0 <- gen_dat(1e3, doD = TRUE)
-d1 <- gen_dat(1e3, doD = FALSE)
-
-# plot(ecdf(d0$Y[d0$D == 0]), add = TRUE, lty = 2, cex = 0.1)
-# plot(ecdf(d0$Y[d0$D == 1]), add = TRUE, col = 2, lty = 2, cex = 0.1)
 
 # Nonparametric control function ------------------------------------------
 

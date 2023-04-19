@@ -12,23 +12,24 @@ devtools::load_all()
 
 # Data --------------------------------------------------------------------
 
-n <- 1e4
+n <- 1e5
 
 ### Data under intervention on D (d0) and observational (d)
-prs <- rnorm(6, 1, 0.05)
-d0 <- dgp_foster(n, doD = TRUE, prs = prs)
-d1 <- dgp_foster(n, doD = FALSE, prs = prs)
+d0 <- dgp_ex1_binary(n, doD = TRUE)
+d1 <- dgp_ex1_binary(n, doD = FALSE)
 
 # Run ---------------------------------------------------------------------
 
-fm_list <- list("DXH" = Y ~ D + X + H, "DX" = Y ~ D + X, "D" = Y ~ D)
-d_list <- list("interventional" = d0, "observational" = d1)
+fm_list <- list("DH" = Y ~ D + H, "D" = Y ~ D)
+# d_list <- list("interventional" = d0, "observational" = d1)
+d_list <- list("observational" = d1)
 
 out <- lapply(fm_list, \(fm) {
   ret <- lapply(d_list, \(d) {
     ### GLM
     p <- glm_marginal_predictions(fm, data = d)
     GLM <- OR(p[, "p1"], p[, "p0"], log)
+    CFX <- unname(p[, "cfx"])
     # GLM <- ATE(p[, "p1"], p[, "p0"])
 
     ### COR
@@ -57,7 +58,7 @@ out <- lapply(fm_list, \(fm) {
     RF <- OR(pRF[, "p1"], pRF[, "p0"], log)
     # RF <- ATE(pRF[, "p1"], pRF[, "p0"])
 
-    c(GLM = GLM, COR = COR, IND = IND, NCTL = NCTL, RF = RF)
+    c(GLM = GLM, COR = COR, IND = IND, NCTL = NCTL, RF = RF, CFX = CFX)
   })
   names(ret) <- names(d_list)
   dplyr::bind_rows(ret, .id = "dataset")
