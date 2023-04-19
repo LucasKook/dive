@@ -32,9 +32,9 @@ lines(ys, F1, type = "l", col = 2, lty = 2)
 # Nonparametric control function ------------------------------------------
 
 ### Fit RF for control function
-cf <- ranger(D ~ Z, data = d1, probability = TRUE)
+cf <- ranger(factor(D) ~ Z, data = d1, probability = TRUE)
 preds <- predict(cf, data = d1)$predictions
-d1$ps <- d1$D - preds[, 1]
+d1$ps <- d1$D - preds[, 2]
 
 ### Fit RF with control function prediction and compute RF weights for prediction
 rf <- ranger(Y ~ D + ps, data = d1, quantreg = TRUE)
