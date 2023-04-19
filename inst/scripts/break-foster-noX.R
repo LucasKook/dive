@@ -13,9 +13,9 @@ devtools::load_all()
 
 # Run ---------------------------------------------------------------------
 
-n <- 1e4
+n <- 3e3
 
-res <- replicate(5e1, {
+res <- replicate(2e1, {
   ### Data under intervention on D (d0) and observational (d)
   d0 <- dgp_ex1_binary(n, doD = TRUE)
   d1 <- dgp_ex1_binary(n, doD = FALSE)
@@ -52,8 +52,9 @@ res <- replicate(5e1, {
       # NCTL <- ATE(pS2[, "p1"], pS2[, "p0"])
 
       ### RF CTRL
-      cf <- ranger(factor(D) ~ Z, data = d, probability = TRUE)
-      d$ps <- d$D - predict(cf, data = d)$predictions[, 2]
+      # cf <- ranger(factor(D) ~ Z, data = d, probability = TRUE)
+      # d$ps <- d$D - predict(cf, data = d)$predictions[, 2]
+      d$ps <- d$D - d$D * plogis(d$Z + d$H) - (1 - d$D) * (1 - plogis(d$Z + d$H))
       pRF <- ranger_marginal_predictions(update(fm, factor(Y) ~ . + ps), data = d)
       RF <- OR(pRF[, "p1"], pRF[, "p0"], log)
       # RF <- ATE(pRF[, "p1"], pRF[, "p0"])
@@ -69,7 +70,7 @@ res <- replicate(5e1, {
 
 }, simplify = FALSE) %>% bind_rows()
 
-write_csv(res, "inst/results/break-foster-noX.csv")
+# write_csv(res, "inst/results/break-foster-noX.csv")
 
 oracle <- res %>%
   filter(method == "GLM", dataset == "interventional", formula == "DH") %>%
@@ -85,4 +86,4 @@ ggplot(res, aes(x = method, y = estimate)) +
   labs(y = "log OR") +
   theme_bw()
 
-ggsave("inst/results/break-foster-noX.pdf", height = 5, width = 5)
+# ggsave("inst/results/break-foster-noX.pdf", height = 5, width = 5)
