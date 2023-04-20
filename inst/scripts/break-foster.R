@@ -69,6 +69,8 @@ res <- replicate(nsim, {
         p <- glm_marginal_predictions(fm, data = d)
         GLM <- EVAL(p[, "p1"], p[, "p0"])
         CFX <- unname(p[, "cfx"])
+        if (metric == "ATE")
+          CFX <- NULL
 
         ### COR
         parCOR <- indep_iv(fm, ~ Z, data = d, "COR")
