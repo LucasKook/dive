@@ -15,7 +15,8 @@ devtools::load_all()
 ### Params
 n <- 1e4
 nsim <- 5e1
-# setting <- c("cond", "cond-noX", "marg", "marg-noX")[4]
+if (is.na(setting))
+  setting <- c("cond", "cond-noX", "marg", "marg-noX")[1]
 metric <- c("log-OR", "ATE")[2]
 
 if (setting == "cond") {
@@ -89,19 +90,19 @@ res <- replicate(nsim, {
         NCTL <- EVAL(pS2[, "p1"], pS2[, "p0"])
 
         ### RF CTRL
-        cf <- ranger(D ~ Z, data = d, probability = TRUE)
+        cf <- ranger(factor(D) ~ Z, data = d, probability = TRUE)
         d$ps <- d$D - predict(cf, data = d)$predictions[, 2]
         pRF <- ranger_marginal_predictions(update(fm, factor(Y) ~ . + ps), data = d)
         RF <- EVAL(pRF[, "p1"], pRF[, "p0"])
 
-        c(GLM = GLM, COR = COR, IND = IND, NCTL = NCTL, RF = RF, CFX = CFX)
+        c(GLM = GLM, COR = COR, IND = IND, NCTL = NCTL, CFX = CFX, RF = RF)
       })
       names(ret) <- names(d_list)
       bind_rows(ret, .id = "dataset")
     })
 
     bind_rows(out, .id = "formula") |>
-      pivot_longer(GLM:CFX, names_to = "method", values_to = "estimate")
+      pivot_longer(GLM:RF, names_to = "method", values_to = "estimate")
 
 }, simplify = FALSE) %>% bind_rows()
 
@@ -118,7 +119,8 @@ ggplot(res, aes(x = method, y = estimate)) +
   ggbeeswarm::geom_quasirandom(width = 0.1, alpha = 0.3) +
   facet_grid(dataset ~ formula) +
   geom_hline(yintercept = oracle, color = "darkred", linetype = 2) +
-  labs(y = "log OR") +
-  theme_bw()
+  labs(y = metric) +
+  theme_bw() +
+  labs(caption = paste0("Setting: ", setting))
 
 ggsave(file.path(odir, "break-foster.pdf"))
