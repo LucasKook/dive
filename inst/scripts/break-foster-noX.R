@@ -54,7 +54,7 @@ res <- replicate(2e1, {
       ### RF CTRL
       # cf <- ranger(factor(D) ~ Z, data = d, probability = TRUE)
       # d$ps <- d$D - predict(cf, data = d)$predictions[, 2]
-      d$ps <- d$D - d$D * plogis(d$Z + d$H) - (1 - d$D) * (1 - plogis(d$Z + d$H))
+      d$ps <- d$D - d$D * plogis(d$Z) - (1 - d$D) * (1 - plogis(d$Z))
       pRF <- ranger_marginal_predictions(update(fm, factor(Y) ~ . + ps), data = d)
       RF <- OR(pRF[, "p1"], pRF[, "p0"], log)
       # RF <- ATE(pRF[, "p1"], pRF[, "p0"])
