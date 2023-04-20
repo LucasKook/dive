@@ -13,10 +13,10 @@ library("tidyverse")
 devtools::load_all()
 
 ### Params
-n <- 1e3
-nsim <- 1e2
+n <- 3e3
+nsim <- 5e1
 if (is.na(setting))
-  setting <- c("cond", "cond-noX", "marg", "marg-noX")[1]
+  setting <- c("cond", "cond-noX", "marg", "marg-noX")[3]
 metric <- c("log-OR", "ATE")[2]
 
 if (setting == "cond") {

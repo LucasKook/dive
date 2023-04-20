@@ -52,7 +52,8 @@ dgp_foster <- function(n = 1e3, doD = FALSE, prs = rnorm(6)) {
   X <- rt(n, df = 10)
   ### Treatment
   UD <- runif(n)
-  D <- as.numeric(plogis(prs[1] * Z + prs[2] * (1 - doD) * H + prs[3] * X) >= UD)
+  D <- as.numeric(plogis(prs[1] * Z + prs[2] * (1 - doD) * H +
+                           (1 - doD) * prs[3] * X) >= UD)
   ### Response
   UY <- runif(n)
   Y <- as.numeric(plogis(prs[4] * D + prs[5] * H + prs[6] * X) >= UY)
@@ -115,7 +116,7 @@ marginal_dgp_foster <- function(n = 1e3, doD = FALSE, prs = rnorm(4)) {
   ### Another covariate
   X <- rt(n, df = 10)
   ### Treatment
-  D <- as.numeric(plogis(prs[1] * Z + prs[2] * X) >= U[, 1])
+  D <- as.numeric(plogis(prs[1] * Z + (1 - doD) * prs[2] * X) >= U[, 1])
   ### Response
   Y <- as.numeric(plogis(prs[3] * D + prs[4] * X) >= U[, 2])
   ### Return
