@@ -8,7 +8,6 @@ set.seed(241068)
 # Dependencies ------------------------------------------------------------
 
 library("ranger")
-library("randomForest")
 library("coin")
 library("tidyverse")
 devtools::load_all()
@@ -17,7 +16,7 @@ devtools::load_all()
 n <- 1e4
 nsim <- 5e1
 # setting <- c("cond", "cond-noX", "marg", "marg-noX")[4]
-metric <- c("log-OR", "ATE")[1]
+metric <- c("log-OR", "ATE")[2]
 
 if (setting == "cond") {
   prs <- rep(1, 6)
