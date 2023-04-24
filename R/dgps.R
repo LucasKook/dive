@@ -1,7 +1,8 @@
 
 dgp_ex1_binary <- function(n = 1e3, doD = FALSE) {
   ### Instrument
-  Z <- sample(c(-1, 1), n, TRUE) # rt(n, df = 5)
+  Z <- sample(c(-1, 1), n, TRUE)
+  # Z <- rt(n, df = 5)
   ### Hidden
   H <- rt(n, df = 5)
   ### Treatment
@@ -23,6 +24,7 @@ dgp_ex1_binary <- function(n = 1e3, doD = FALSE) {
 dgp_ex1_cont <- function(n = 1e3, doD = FALSE) {
   ### Instrument
   Z <- sample(c(-1, 1), n, TRUE) # rt(n, df = 5)
+  # Z <- rt(n, df = 5)
   ### Hidden
   H <- rt(n, df = 5)
   ### Treatment
@@ -46,6 +48,7 @@ dgp_ex1_cont <- function(n = 1e3, doD = FALSE) {
 dgp_foster <- function(n = 1e3, doD = FALSE, prs = rnorm(6)) {
   ### Instrument
   Z <- sample(c(-1, 1), n, TRUE) # rt(n, df = 5)
+  # Z <- rt(n, df = 5)
   ### Hidden
   H <- rt(n, df = 5)
   ### Another covariate
@@ -68,6 +71,7 @@ dgp_foster <- function(n = 1e3, doD = FALSE, prs = rnorm(6)) {
 marginal_dgp_ex1_binary <- function(n = 1e3, doD = FALSE) {
   ### Instrument
   Z <- sample(c(-1, 1), n, TRUE) # rt(n, df = 5)
+  # Z <- rt(n, df = 5)
   ### Hidden
   if (doD) cop <- copula::indepCopula(2) else cop <- copula::claytonCopula(-0.5, 2)
   U <- copula::rCopula(cop, n = n)
@@ -77,18 +81,13 @@ marginal_dgp_ex1_binary <- function(n = 1e3, doD = FALSE) {
   UY <- runif(n)
   Y <- as.numeric(plogis(D) >= U[, 2])
   ### Return
-  ret <- data.frame(Y = Y, D = D, Z = Z, UD = U[, 1], UY = U[, 2])
-
-  ### Compute oracle
-  op1 <- integrate(\(x) plogis(1 + x) * dt(x, df = 5), -20, 20)$value
-  op0 <- integrate(\(x) plogis(x) * dt(x, df = 5), -20, 20)$value
-
-  structure(ret, p1 = op1, p0 = op0)
+  data.frame(Y = Y, D = D, Z = Z, UD = U[, 1], UY = U[, 2])
 }
 
 marginal_dgp_ex1_cont <- function(n = 1e3, doD = FALSE) {
   ### Instrument
   Z <- sample(c(-1, 1), n, TRUE) # rt(n, df = 5)
+  # Z <- rt(n, df = 5)
   ### Hidden
   if (doD) cop <- copula::indepCopula(2) else cop <- copula::claytonCopula(-0.5, 2)
   U <- copula::rCopula(cop, n = n)
@@ -110,6 +109,7 @@ marginal_dgp_ex1_cont <- function(n = 1e3, doD = FALSE) {
 marginal_dgp_foster <- function(n = 1e3, doD = FALSE, prs = rnorm(4)) {
   ### Instrument
   Z <- sample(c(-1, 1), n, TRUE) # rt(n, df = 5)
+  # Z <- rt(n, df = 5)
   ### Hidden
   if (doD) cop <- copula::indepCopula(2) else cop <- copula::claytonCopula(-0.5, 2)
   U <- copula::rCopula(cop, n = n)

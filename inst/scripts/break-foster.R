@@ -14,9 +14,9 @@ devtools::load_all()
 
 ### Params
 n <- 3e3
-nsim <- 5e1
+nsim <- 2e1
 if (is.na(setting))
-  setting <- c("cond", "cond-noX", "marg", "marg-noX")[3]
+  setting <- c("cond", "cond-noX", "marg", "marg-noX")[4]
 metric <- c("log-OR", "ATE")[2]
 
 if (setting == "cond") {
@@ -60,6 +60,7 @@ res <- replicate(nsim, {
   ### Data under intervention on D (d0) and observational (d)
   d0 <- DGP(n, doD = TRUE)
   d1 <- DGP(n, doD = FALSE)
+  dtune <- DGP(n, doD = FALSE)
   d_list <- list("interventional" = d0, "observational" = d1)
 
   ### Formulae and data to loop over
@@ -90,9 +91,10 @@ res <- replicate(nsim, {
         NCTL <- EVAL(pS2[, "p1"], pS2[, "p0"])
 
         ### RF CTRL
-        cf <- ranger(factor(D) ~ Z, data = d, probability = TRUE)
+        cf <- ranger(factor(D) ~ Z, data = dtune, probability = TRUE)
         d$ps <- d$D - predict(cf, data = d)$predictions[, 2]
-        pRF <- ranger_marginal_predictions(update(fm, factor(Y) ~ . + ps), data = d)
+        ufm <- update(fm, factor(Y) ~ . + ps)
+        pRF <- ranger_marginal_predictions(ufm, data = d)
         RF <- EVAL(pRF[, "p1"], pRF[, "p0"])
 
         c(GLM = GLM, COR = COR, IND = IND, NCTL = NCTL, CFX = CFX, RF = RF)

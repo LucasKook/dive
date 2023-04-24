@@ -17,6 +17,7 @@ n <- 1e4
 ### Data under intervention on D (d0) and observational (d1)
 d0 <- dgp_ex1_binary(n, doD = TRUE)
 d1 <- dgp_ex1_binary(n, doD = FALSE)
+dtune <- dgp_ex1_binary(n, doD = FALSE)
 
 # Oracle ------------------------------------------------------------------
 
@@ -25,6 +26,7 @@ op1 <- attr(d1, "p1")
 
 ### Oracle ATE (collapsible)
 (oATE <- ATE(op1, op0))
+# (oATE <- mean(d0$Y[d0$D == 1]) - mean(d0$Y[d0$D == 0]))
 
 ### Oracle OR (non-collapsible)
 (oOR <- OR(op1, op0, log))
@@ -61,7 +63,7 @@ NCTL <- OR(S2[, "p1"], S2[, "p0"], log)
 # Nonparametric control function ------------------------------------------
 
 ### Fit RF for control function
-cf <- ranger(factor(D) ~ Z, data = d1, probability = TRUE)
+cf <- ranger(factor(D) ~ Z, data = dtune, probability = TRUE)
 preds <- predict(cf, data = d1)$predictions
 d1$ps <- d1$D - preds[, 2]
 # Virtually identical to RF-based PS

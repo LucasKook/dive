@@ -3,7 +3,7 @@
 
 set.seed(0)
 
-odir <- file.path("figures")
+odir <- file.path("inst/figures")
 if (!dir.exists(odir))
   dir.create(odir)
 
@@ -172,8 +172,12 @@ pd <- nd0 %>%
 
 ggplot(pd %>% filter(type %in% c("DTE", "QTE", "TTE", "DOK")), aes(x = surv, y = est, color = method)) +
   geom_line() +
-  facet_wrap(~ type, scales = "free", nrow = 2) +
+  facet_wrap(~ type, scales = "free", nrow = 2, labeller = as_labeller(c(
+    "DTE" = "Distributional", "QTE" = "Quantile", "TTE" = "Log-hazard",
+    "DOK" = "Doksum-type"
+  ))) +
   labs(x = "time", y = "Estimate") +
-  scale_color_brewer(palette = "Dark2")
+  scale_color_brewer(palette = "Dark2") +
+  theme(text = element_text(size = 13.5))
 
 ggsave(file.path(odir, "dte.pdf"), height = 6, width = 7)
