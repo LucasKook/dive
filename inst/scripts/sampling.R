@@ -3,6 +3,8 @@ set.seed(3)
 devtools::load_all()
 
 dat <- marginal_dgp_ex1_binary(n = 1e4, doD = TRUE)
+d2 <- marginal_dgp_ex1_binary(n = 1e4, doD = TRUE)
+
 # dat <- dgp_ex1_binary(n = 1e4)
 
 dat$Y <- factor(dat$Y)
@@ -17,8 +19,8 @@ cfx0 <- coef(glm(Y ~ D, data = dat, family = "binomial"))
 res <- lapply(nD, \(nd) {
   tmp <- dat
   tmp$D <- nd
-  cfx <- coef(glm(Y ~ D, data = tmp, family = "binomial"))
-  plogis(sum(cfx)) - plogis(cfx[1])
+  (cfx <- coef(glm(Y ~ D, data = tmp, family = "binomial")))
+  # plogis(sum(cfx)) - plogis(cfx[1])
 })
 
 rres <- do.call("rbind", res)
