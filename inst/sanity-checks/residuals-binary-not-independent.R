@@ -22,6 +22,7 @@
 # sum(unlist(joint()))
 
 devtools::load_all()
+
 dgp <- function(n = 1e3, doD = FALSE) {
   ### Instrument
   # Z <- sample(c(-1, 1), n, TRUE) # rt(n, df = 5)
@@ -38,9 +39,15 @@ dgp <- function(n = 1e3, doD = FALSE) {
   ### Return
   data.frame(Y = Y, D = D, Z = Z, UD = U[, 1], UY = U[, 2])
 }
+
 d <- dgp(1e4, TRUE)
 m <- glm(Y ~ D, data = d, family = "binomial")
-d$R <- d$Y - predict(m, newdata = d, type = "response")
+preds <- predict(m, newdata = d, type = "response")
+lwr <- d$Y * (1 - preds)
+upr <- (1 - preds)^(1 - d$Y)
+cbind(lwr, upr)
+d$R <- runif(nrow(d), lwr, upr)
+
 # plot(factor(R) ~ factor(Z), data = d)
 cor.test(d$R, d$Z)
 coin::independence_test(R ~ Z, data = d)
