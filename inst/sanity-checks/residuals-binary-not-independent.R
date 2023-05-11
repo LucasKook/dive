@@ -43,10 +43,7 @@ dgp <- function(n = 1e3, doD = FALSE) {
 d <- dgp(1e4, TRUE)
 m <- glm(Y ~ D, data = d, family = "binomial")
 preds <- predict(m, newdata = d, type = "response")
-lwr <- d$Y * (1 - preds)
-upr <- (1 - preds)^(1 - d$Y)
-cbind(lwr, upr)
-d$R <- runif(nrow(d), lwr, upr)
+d$R <- randomized_pit(1 - preds, d$Y)
 
 # plot(factor(R) ~ factor(Z), data = d)
 cor.test(d$R, d$Z)

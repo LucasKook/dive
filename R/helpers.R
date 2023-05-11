@@ -7,6 +7,12 @@
   x
 }
 
+randomized_pit <- function(p0, y, trafo = identity) {
+  lwr <- c(y * p0)
+  upr <- c(p0^(1 - y))
+  trafo(runif(NROW(y), lwr, upr))
+}
+
 # Takes function to generate random sample and turns it into a uniform RV
 # using ECDF transform
 # hist(.sample_to_uniform(\(n) rlogis(n) + rnorm(n), 1e3))
@@ -22,9 +28,7 @@ cor_obj <- \(b, Y, X, E, ytrafo = NULL) {
 
 ind_obj <- \(b, Y, X, E, tstat = "quadratic", trafo = identity, ytrafo = trafo) {
   p0 <- (1 - plogis(X %*% b))
-  lwr <- Y * p0
-  upr <- p0^(1 - Y)
-  R <- runif(NROW(upr), lwr, upr)
+  R <- randomized_pit(p0, Y)
   trafo(statistic(independence_test(R ~ E, teststat = tstat, ytrafo = ytrafo)))
 }
 
@@ -37,13 +41,10 @@ ATE <- \(p1, p2, cf = identity) {
 }
 
 glm_marginal_predictions <- function(fml, data, trt = "D", trafo = mean) {
-  m <- glm(fml, data, family = "binomial")
-  nd0 <- nd1 <- data
-  nd0[trt] <- 0
-  nd1[trt] <- 1
-  cbind(p1 = trafo(predict(m, newdata = nd1, type = "response")),
-        p0 = trafo(predict(m, newdata = nd0, type = "response")),
-        cfx = unname(coef(m)[trt]))
+  m0 <- glm(fml, data[data[[trt]] == 0, ], family = "binomial")
+  m1 <- glm(fml, data[data[[trt]] == 1, ], family = "binomial")
+  cbind(p1 = trafo(predict(m1, newdata = data, type = "response")),
+        p0 = trafo(predict(m0, newdata = data, type = "response")))
 }
 
 indep_marginal_predictions <- function(par, data, trt = "D", trafo = mean) {
@@ -56,12 +57,10 @@ indep_marginal_predictions <- function(par, data, trt = "D", trafo = mean) {
 }
 
 ranger_marginal_predictions <- function(fml, data, trt = "D", trafo = mean) {
-  rf <- ranger(fml, data = data, probability = TRUE)
-  nd0 <- nd1 <- data
-  nd0[trt] <- 0
-  nd1[trt] <- 1
-  rfp0 <- predict(rf, data = nd0)$pred[, 2]
-  rfp1 <- predict(rf, data = nd1)$pred[, 2]
+  rf0 <- ranger(fml, data = data[data[[trt]] == 0, ], probability = TRUE)
+  rf1 <- ranger(fml, data = data[data[[trt]] == 1, ], probability = TRUE)
+  rfp0 <- predict(rf0, data = data)$pred[, 2]
+  rfp1 <- predict(rf1, data = data)$pred[, 2]
   cbind(p1 = trafo(rfp1), p0 = trafo(rfp0))
 }
 

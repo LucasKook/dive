@@ -15,9 +15,20 @@ devtools::load_all()
 n <- 1e4
 
 ### Data under intervention on D (d0) and observational (d1)
-d0 <- dgp_ex1_binary(n, doD = TRUE)
-d1 <- dgp_ex1_binary(n, doD = FALSE)
-dtune <- dgp_ex1_binary(n, doD = FALSE)
+d0 <- marginal_dgp_ex1_binary(n, doD = TRUE)
+d1 <- marginal_dgp_ex1_binary(n, doD = FALSE)
+
+glm_marginal_predictions(Y ~ UD, data = d0)
+ranger_marginal_predictions(factor(Y) ~ UD, d0)
+glm_marginal_predictions(Y ~ UD, data = d1)
+ranger_marginal_predictions(factor(Y) ~ UD, d1)
+#
+# rf0 <- ranger(factor(Y) ~ H, data = d1[d1$D == 0, ], probability = TRUE)
+# rf1 <- ranger(factor(Y) ~ H, data = d1[d1$D == 1, ], probability = TRUE)
+#
+# p0 <- predict(rf0, data = d1)$predictions[, 2]
+# p1 <- predict(rf1, data = d1)$predictions[, 2]
+# mean(p1 - p0)
 
 # Oracle ------------------------------------------------------------------
 
@@ -56,22 +67,22 @@ IND <- OR(pIND[, "p1"], pIND[, "p0"], log)
 
 ### Naive control function (parametric, breaks down for more complex examples)
 S1 <- glm(D ~ Z, data = d1, family = "binomial")
-d1$R <- d1$D - predict(S1, type = "response")
-S2 <- glm_marginal_predictions(Y ~ D + R, data = d1)
+d1$R <- randomized_pit(1 - predict(S1, type = "response"), d1$D, trafo = qnorm)
+S2 <- glm_marginal_predictions(Y ~ R, data = d1, trt = "D")
 NCTL <- OR(S2[, "p1"], S2[, "p0"], log)
 
 # Nonparametric control function ------------------------------------------
 
 ### Fit RF for control function
-cf <- ranger(factor(D) ~ Z, data = dtune, probability = TRUE)
+cf <- ranger(factor(D) ~ Z, data = d1, probability = TRUE)
 preds <- predict(cf, data = d1)$predictions
-d1$ps <- d1$D - preds[, 2]
+d1$ps <- randomized_pit(preds[, 1], d1$D)
 # Virtually identical to RF-based PS
 # cf <- glm(D ~ Z, data = dZ, family = "binomial")
 # preds <- predict(cf, newdata = d, type = "response")
 # d$ps <- d$D - preds
 
-pRF <- ranger_marginal_predictions(factor(Y) ~ D + ps, d1)
+pRF <- ranger_marginal_predictions(factor(Y) ~ ps, d1)
 RF <- OR(pRF[, "p1"], pRF[, "p0"], log)
 
 # Results -----------------------------------------------------------------

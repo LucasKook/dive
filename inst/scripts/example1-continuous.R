@@ -11,7 +11,7 @@ devtools::load_all()
 
 # Data --------------------------------------------------------------------
 
-n <- 1e5
+n <- 1e4
 
 # Data under intervention on D (d0) and observational (d)
 d0 <- dgp_ex1_cont(n, doD = TRUE)
@@ -34,7 +34,8 @@ lines(ys, F1, type = "l", col = 2, lty = 2)
 ### Fit RF for control function
 cf <- ranger(factor(D) ~ Z, data = d1, probability = TRUE)
 preds <- predict(cf, data = d1)$predictions
-d1$ps <- d1$D - preds[, 2]
+# d1$ps <- d1$D - preds[, 2]
+d1$ps <- randomized_pit(preds[, 1], d1$D, trafo = qnorm)
 
 ### Fit RF with control function prediction and compute RF weights for prediction
 rf <- ranger(Y ~ D + ps, data = d1, quantreg = TRUE)
