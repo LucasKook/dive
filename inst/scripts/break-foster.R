@@ -16,7 +16,7 @@ devtools::load_all()
 n <- 3e3
 nsim <- 2e1
 if (is.na(setting))
-  setting <- c("cond", "cond-noX", "marg", "marg-noX")[4]
+  setting <- c("cond", "cond-noX", "marg", "marg-noX")[2]
 metric <- c("log-OR", "ATE")[2]
 
 if (setting == "cond") {
@@ -80,7 +80,7 @@ res <- replicate(nsim, {
         COR <- EVAL(pCOR[, "p1"], pCOR[, "p0"])
 
         ### IND
-        parIND <- indep_iv(fm, ~ 0 + Z, data = d, "IND")
+        parIND <- indep_iv(fm, ~ 0 + Z, data = d, "IND", ytrafo = rank)
         pIND <- indep_marginal_predictions(parIND, d)
         IND <- EVAL(pIND[, "p1"], pIND[, "p0"])
 

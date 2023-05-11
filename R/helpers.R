@@ -15,14 +15,17 @@
   .clip(S2U(sfun(n)))
 }
 
-cor_obj <- \(b, Y, X, E) {
+cor_obj <- \(b, Y, X, E, ytrafo = NULL) {
   R <- (Y - plogis(X %*% b))
   sum(fitted(lm(R ~ E))^2)
 }
 
-ind_obj <- \(b, Y, X, E, tstat = "quadratic", trafo = identity) {
-  R <- (Y - plogis(X %*% b))
-  trafo(statistic(independence_test(R ~ E, teststat = tstat)))
+ind_obj <- \(b, Y, X, E, tstat = "quadratic", trafo = identity, ytrafo = trafo) {
+  p0 <- (1 - plogis(X %*% b))
+  lwr <- Y * p0
+  upr <- p0^(1 - Y)
+  R <- runif(NROW(upr), lwr, upr)
+  trafo(statistic(independence_test(R ~ E, teststat = tstat, ytrafo = ytrafo)))
 }
 
 OR <- \(p1, p2, cf = identity) {
@@ -62,7 +65,7 @@ ranger_marginal_predictions <- function(fml, data, trt = "D", trafo = mean) {
   cbind(p1 = trafo(rfp1), p0 = trafo(rfp0))
 }
 
-indep_iv <- function(formula, instrument, data, method = c("COR", "IND")) {
+indep_iv <- function(formula, instrument, data, method = c("COR", "IND"), ytrafo = trafo) {
   method <- match.arg(method)
   obj <- switch(method, "COR" = cor_obj, "IND" = ind_obj)
   ### Set up model matrices
@@ -72,6 +75,6 @@ indep_iv <- function(formula, instrument, data, method = c("COR", "IND")) {
   ### Initial value
   b0 <- rep(0, ncol(X))
   ### Optim
-  ret <- optim(b0, obj, Y = Y, X = X, E = Z)$par
+  ret <- optim(b0, obj, Y = Y, X = X, E = Z, ytrafo = ytrafo)$par
   structure(ret, fml = formula, names = colnames(X))
 }
