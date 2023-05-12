@@ -72,7 +72,7 @@ indep_iv <- function(formula, instrument, data, method = c("COR", "IND"), ytrafo
   X <- model.matrix(formula, data)
   Z <- model.matrix(instrument, data)
   ### Initial value
-  b0 <- rep(0, ncol(X))
+  b0 <- rep(1, ncol(X))
   ### Optim
   ret <- optim(b0, obj, Y = Y, X = X, E = Z, ytrafo = ytrafo)$par
   structure(ret, fml = formula, names = colnames(X))
