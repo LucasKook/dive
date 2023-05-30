@@ -1,25 +1,3 @@
-#
-# joint <- function(a = rnorm(1), b0 = rnorm(1), b = rnorm(1), c0 = rnorm(1),
-#                   c = rnorm(1)) {
-#   Z <- c("Z0" = plogis(a), "Z1" = 1 - plogis(a))
-#   DZ <- matrix(c(plogis(b0), 1 - plogis(b0),
-#                  plogis(b0 + b), 1 - plogis(b0 + b)),
-#                nrow = 2, byrow = FALSE)
-#   colnames(DZ) <- c("Z0", "Z1")
-#   rownames(DZ) <- c("D0", "D1")
-#   D <- (DZ %*% Z)[, 1]
-#   YD <- matrix(c(plogis(c0), 1 - plogis(c0),
-#                  plogis(c0 + c), 1 - plogis(c0 + c)),
-#                nrow = 2, byrow = FALSE)
-#   colnames(YD) <- c("D0", "D1")
-#   rownames(YD) <- c("Y0", "Y1")
-#   YD * rbind(D, D)
-#   YD * rbind(DZ[, 1], DZ[, 1]) * Z[1] + YD * rbind(DZ[, 2], DZ[, 2]) * Z[2]
-#   list("Z0" = YD * rbind(DZ[, 1], DZ[, 1]) * Z[1], "Z1" = YD * rbind(DZ[, 2], DZ[, 2]) * Z[2])
-# }
-#
-# joint()
-# sum(unlist(joint()))
 
 devtools::load_all()
 
@@ -31,8 +9,8 @@ dgp <- function(n = 1e3, doD = FALSE) {
   if (doD) cop <- copula::indepCopula(2) else cop <- copula::claytonCopula(-0.5, 2)
   U <- copula::rCopula(cop, n = n)
   ### Treatment
-  # D <- as.numeric(plogis(Z) >= U[, 1])
-  D <- Z + rnorm(n, sd = 1 + abs(Z))
+  D <- as.numeric(plogis(Z) >= U[, 1])
+  # D <- Z + rnorm(n, sd = 1 + abs(Z))
   ### Response
   UY <- runif(n)
   Y <- as.numeric(plogis(D) >= U[, 2])
@@ -43,13 +21,37 @@ dgp <- function(n = 1e3, doD = FALSE) {
 d <- dgp(1e4, TRUE)
 m <- glm(Y ~ D, data = d, family = "binomial")
 preds <- predict(m, newdata = d, type = "response")
+
+# Classical residuals -----------------------------------------------------
+
+d$cR <- d$Y - preds
+
+### Against treatment
+plot(factor(cR) ~ factor(D), data = d)
+cor.test(d$cR, d$D)
+coin::independence_test(cR ~ D, data = d, ytrafo = rank)
+dHSIC::dhsic.test(d$cR, d$D, method = "gamma", kernel = c("discrete", "discrete"))
+
+### Against instrument
+cor.test(d$cR, d$Z)
+coin::independence_test(cR ~ Z, data = d, ytrafo = rank)
+dHSIC::dhsic.test(d$cR, d$Z, method = "gamma", kernel = c("discrete", "discrete"))
+
+# rPIT residuals ----------------------------------------------------------
+
 d$R <- randomized_pit(1 - preds, d$Y)
 
-# plot(factor(R) ~ factor(Z), data = d)
-cor.test(d$R, d$Z)
-coin::independence_test(R ~ Z, data = d)
-coin::independence_test(R ~ Z, data = d, ytrafo = rank)
+### Against treatment
+plot(R ~ factor(D), data = d)
+cor.test(d$R, d$D)
+coin::independence_test(R ~ D, data = d)
+coin::independence_test(R ~ D, data = d, ytrafo = rank)
+dHSIC::dhsic.test(d$R, d$D, method = "gamma", kernel = c("discrete", "discrete"))
+
+### Against instrument
 plot(R ~ Z, data = d)
+cor.test(d$R, d$Z)
+coin::independence_test(R ~ Z, data = d, ytrafo = rank)
 dHSIC::dhsic.test(d$R, d$Z, method = "gamma", kernel = c("discrete", "discrete"))
 summary(multcomp::glht(glm(Y ~ D*Z, data = d, family = "binomial"),
                        linfct = c("Z == 0", "D:Z == 0")))
