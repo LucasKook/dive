@@ -94,13 +94,13 @@ marginal_dgp_ex1_cont <- function(n = 1e3, doD = FALSE) {
   ### Treatment
   D <- as.numeric(plogis(Z) >= U[, 1])
   ### Response
-  Y <- qnorm(U[, 2], mean = D + H, sd = 1 + abs(D + H))
+  Y <- qnorm(U[, 2], mean = D, sd = 1 + abs(D))
   ### Return
   ret <- data.frame(Y = Y, D = D, Z = Z, UD = U[, 1], UY = U[, 2])
 
   ### Compute oracle
   oracle_distr <- Vectorize(\(y, d = 0) {
-    pnorm(y, mean = d + x, sd = 1 + abs(d + x))
+    pnorm(y, mean = d, sd = 1 + abs(d))
   }, "y")
 
   structure(ret, odist = oracle_distr)
