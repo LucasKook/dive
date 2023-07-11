@@ -22,7 +22,7 @@ d1 <- dgp_ex1_cont(n, doD = FALSE)
 
 oracle_distr <- attr(d1, "odist")
 
-ys <- seq(-13, 13, length.out = 1e3)
+ys <- seq(min(d0$Y), max(d0$Y), length.out = 1e3)
 F1 <- oracle_distr(ys, d = 1)
 F0 <- oracle_distr(ys, d = 0)
 

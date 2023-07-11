@@ -8,11 +8,28 @@ set.seed(1234)
 devtools::load_all()
 library("tram")
 library("coin")
+library("ranger")
+library("dHSIC")
 
 # GEN ---------------------------------------------------------------------
 
-df <- marginal_dgp_ex1_cont(n = 1e3)
-dint <- marginal_dgp_ex1_cont(n = 1e3, doD = TRUE)
+df <- marginal_dgp_ex1_cont(n = 1e4)
+dint <- marginal_dgp_ex1_cont(n = 1e4, doD = TRUE)
+
+### Oracle from intervention data
+m0i <- BoxCox(Y ~ 1, data = dint, prob = c(0.001, 0.999), subset = dint$D == 0, bounds = c(0, 1), order = 10)
+m1i <- BoxCox(Y ~ 1, data = dint, prob = c(0.001, 0.999), subset = dint$D == 1, bounds = c(0, 1), order = 10)
+
+### Evaluate residuals of counfounded data in interventional model
+df$Ri <- NA
+df$Ri[df$D == 0] <- predict(m0i, newdata = df[df$D == 0,], type = "trafo")
+df$Ri[df$D == 1] <- predict(m1i, newdata = df[df$D == 1,], type = "trafo")
+
+# boxplot(Ri ~ Z, data = df)
+spearman_test(Ri ~ Z, data = df)
+# dhsic.test(df$Ri, df$Z, method = "gamma")$p.value
+
+odist <- attr(df, "odist")
 
 # RUN ---------------------------------------------------------------------
 
@@ -25,28 +42,47 @@ df$R <- NA
 df$R[df$D == 0] <- residuals(m0)
 df$R[df$D == 1] <- residuals(m1)
 
-boxplot(R ~ Z, data = df)
-independence_test(R ~ Z, data = df)
+# boxplot(R ~ Z, data = df)
+spearman_test(R ~ Z, data = df)
+# dhsic.test(df$R, df$Z, method = "gamma")$p.value
 
-### Fit mdoels on interventional data
-m0i <- BoxCox(Y ~ 1, data = dint, prob = c(0.001, 0.999), subset = dint$D == 0)
-m1i <- BoxCox(Y ~ 1, data = dint, prob = c(0.001, 0.999), subset = dint$D == 1)
+### Plot models
+plot(m0, which = "distribution", type = "distribution", lwd = 2, K = 3e2)
+plot(m1, which = "distribution", type = "distribution", lwd = 2, col = 2, add = TRUE, K = 3e2)
 
-### Evaluate residuals of counfounded data in interventional model
-df$Ri <- NA
-df$Ri[df$D == 0] <- predict(m0i, newdata = df[df$D == 0,], type = "trafo")
-df$Ri[df$D == 1] <- predict(m1i, newdata = df[df$D == 1,], type = "trafo")
+### Add oracle
+plot(m0i, which = "distribution", type = "distribution", lwd = 2, lty = 2, add = TRUE, K = 3e2)
+plot(m1i, which = "distribution", type = "distribution", lwd = 2, col = 2, add = TRUE, lty = 2, K = 3e2)
 
-boxplot(Ri ~ Z, data = df)
-independence_test(Ri ~ Z, data = df)
+# Control function --------------------------------------------------------
 
-### Plot estimates
-plot(m0i, which = "distribution", lwd = 2)
-plot(m1i, which = "distribution", add = TRUE, col = 2, lwd = 2)
+### Compute ctrl fun
+cm <- glm(D ~ Z, data = df, family = "binomial")
+df$ctrl <- df$D - predict(cm, type = "response")
+
+c0 <- BoxCox(Y | ctrl ~ 1, data = df[df$D == 0, ], prob = c(0.001, 0.999), bounds = c(0, 1), order = 15)
+c1 <- BoxCox(Y | ctrl ~ 1, data = df[df$D == 1, ], prob = c(0.001, 0.999), bounds = c(0, 1), order = 15)
+
+df$Rc <- NA
+df$Rc[df$D == 0] <- residuals(c0)
+df$Rc[df$D == 1] <- residuals(c1)
+
+# boxplot(Rc ~ Z, data = df)
+spearman_test(Rc ~ Z, data = df)
+# dhsic.test(df$Rc, df$Z, method = "gamma")$p.value
+
+### Plot estimates # Does not work b/c need to extrapolate in ctrl
+ys <- seq(min(df$Y), max(df$Y), length.out = 1e3)
+pr0 <- predict(c0, which = "distribution", type = "distribution", newdata = droplevels(df), q = ys)
+pr1 <- predict(c1, which = "distribution", type = "distribution", newdata = droplevels(df), q = ys)
+plot(ys, rowMeans(pr0), col = 1, lwd = 2, type = "l")
+lines(ys, rowMeans(pr1), col = 2, lwd = 2)
 legend("topleft", c("D = 0", "D = 1"), col = c(1, 2), lwd = 2, bty = "n")
 
-### Add true distributions
-ys <- seq(-4, 4, length.out = 1e3)
-odist <- attr(df, "odist")
-lines(ys, odist(ys), lty = 2)
-lines(ys, attr(df, "odist")(ys, d = 1), lty = 2, col = 2)
+### Add interventional fit (dashed)
+plot(m0i, which = "distribution", type = "distribution", lwd = 2, lty = 2, add = TRUE, K = 3e2)
+plot(m1i, which = "distribution", type = "distribution", lwd = 2, col = 2, add = TRUE, lty = 2, K = 3e2)
+
+### Add oracle (dotted)
+lines(ys, odist(ys, d = 0), lty = 3, lwd = 2, col = 1)
+lines(ys, odist(ys, d = 1), lty = 3, lwd = 2, col = 2)
