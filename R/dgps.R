@@ -86,15 +86,16 @@ marginal_dgp_ex1_binary <- function(n = 1e3, doD = FALSE) {
 
 marginal_dgp_ex1_cont <- function(n = 1e3, doD = FALSE) {
   ### Instrument
-  # Z <- sample(c(-1, 1), n, TRUE)
-  Z <- rlogis(n)
+  Z <- sample(c(-1, 1), n, TRUE)
+  # Z <- rlogis(n)
   ### Hidden
   if (doD) cop <- copula::indepCopula(2) else cop <- copula::claytonCopula(-0.5, 2)
   U <- copula::rCopula(cop, n = n)
   ### Treatment
   D <- as.numeric(plogis(Z) >= U[, 1])
   ### Response
-  Y <- qbeta(U[, 2], shape1 = 0.5 / (1 + D), shape2 = 0.5 / (1 + D))
+  # Y <- qbeta(U[, 2], shape1 = 0.5 / (1 + D), shape2 = 0.5 / (1 + D))
+  Y <- qnorm(U[, 2], mean = D, sd = 1 + D)
   ### Return
   ret <- data.frame(Y = Y, D = D, Z = Z, UD = U[, 1], UY = U[, 2])
 

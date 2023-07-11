@@ -18,17 +18,22 @@ df <- marginal_dgp_ex1_cont(n = 1e4)
 dint <- marginal_dgp_ex1_cont(n = 1e4, doD = TRUE)
 
 ### Oracle from intervention data
-m0i <- BoxCox(Y ~ 1, data = dint, prob = c(0.001, 0.999), subset = dint$D == 0, bounds = c(0, 1), order = 10)
-m1i <- BoxCox(Y ~ 1, data = dint, prob = c(0.001, 0.999), subset = dint$D == 1, bounds = c(0, 1), order = 10)
+m0i <- BoxCox(Y ~ 1, data = dint, prob = c(0.001, 0.999), subset = dint$D == 0)
+m1i <- BoxCox(Y ~ 1, data = dint, prob = c(0.001, 0.999), subset = dint$D == 1)
 
 ### Evaluate residuals of counfounded data in interventional model
 df$Ri <- NA
-df$Ri[df$D == 0] <- predict(m0i, newdata = df[df$D == 0,], type = "trafo")
-df$Ri[df$D == 1] <- predict(m1i, newdata = df[df$D == 1,], type = "trafo")
+df$Ri[df$D == 0] <- predict(m0i, newdata = df[df$D == 0,], type = "distribution")
+df$Ri[df$D == 1] <- predict(m1i, newdata = df[df$D == 1,], type = "distribution")
 
-# boxplot(Ri ~ Z, data = df)
+boxplot(Ri ~ Z, data = df)
 spearman_test(Ri ~ Z, data = df)
-# dhsic.test(df$Ri, df$Z, method = "gamma")$p.value
+dhsic.test(df$Ri, df$Z, method = "gamma")$p.value
+
+# qqnorm(qnorm(df$Ri[df$Z == -1]))
+# qqline(qnorm(df$Ri[df$Z == -1]))
+# qqnorm(qnorm(df$Ri[df$Z == 1]), col = 2)
+# qqline(qnorm(df$Ri[df$Z == 1]), col = 2)
 
 odist <- attr(df, "odist")
 
