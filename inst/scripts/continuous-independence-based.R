@@ -60,24 +60,35 @@ plot(m1i, which = "distribution", type = "distribution", lwd = 2, col = 2, add =
 cm <- glm(D ~ Z, data = df, family = "binomial")
 df$ctrl <- df$D - predict(cm, type = "response")
 
-c0 <- BoxCox(Y | ctrl ~ 1, data = df[df$D == 0, ], prob = c(0.001, 0.999), bounds = c(0, 1), order = 15)
-c1 <- BoxCox(Y | ctrl ~ 1, data = df[df$D == 1, ], prob = c(0.001, 0.999), bounds = c(0, 1), order = 15)
+### CTRL WITH RF
+tau <- seq(0, 1, length.out = 3e2)
+rf0 <- ranger(Y ~ ctrl, data = df[df$D == 0, ], quantreg = TRUE)
+rf1 <- ranger(Y ~ ctrl, data = df[df$D == 1, ], quantreg = TRUE)
+pr0 <- t(predict(rf0, data = df, quantiles = tau, type = "quantiles")$predictions)
+pr1 <- t(predict(rf1, data = df, quantiles = tau, type = "quantiles")$predictions)
 
-df$Rc <- NA
-df$Rc[df$D == 0] <- residuals(c0)
-df$Rc[df$D == 1] <- residuals(c1)
+plot(rowMeans(pr0), tau, type = "l", lwd = 2, col = 1)
+lines(rowMeans(pr1), tau, type = "l", lwd = 2, col = 2)
 
-# boxplot(Rc ~ Z, data = df)
-spearman_test(Rc ~ Z, data = df)
-# dhsic.test(df$Rc, df$Z, method = "gamma")$p.value
-
-### Plot estimates # Does not work b/c need to extrapolate in ctrl
-ys <- seq(min(df$Y), max(df$Y), length.out = 1e3)
-pr0 <- predict(c0, which = "distribution", type = "distribution", newdata = droplevels(df), q = ys)
-pr1 <- predict(c1, which = "distribution", type = "distribution", newdata = droplevels(df), q = ys)
-plot(ys, rowMeans(pr0), col = 1, lwd = 2, type = "l")
-lines(ys, rowMeans(pr1), col = 2, lwd = 2)
-legend("topleft", c("D = 0", "D = 1"), col = c(1, 2), lwd = 2, bty = "n")
+### CTRL WITH TRAM
+# c0 <- BoxCox(Y | ctrl ~ 1, data = df[df$D == 0, ], prob = c(0.001, 0.999), bounds = c(0, 1), order = 15)
+# c1 <- BoxCox(Y | ctrl ~ 1, data = df[df$D == 1, ], prob = c(0.001, 0.999), bounds = c(0, 1), order = 15)
+#
+# df$Rc <- NA
+# df$Rc[df$D == 0] <- residuals(c0)
+# df$Rc[df$D == 1] <- residuals(c1)
+#
+# # boxplot(Rc ~ Z, data = df)
+# spearman_test(Rc ~ Z, data = df)
+# # dhsic.test(df$Rc, df$Z, method = "gamma")$p.value
+#
+# ### Plot estimates # Does not work b/c need to extrapolate in ctrl
+# ys <- seq(min(df$Y), max(df$Y), length.out = 1e3)
+# pr0 <- predict(c0, which = "distribution", type = "distribution", newdata = droplevels(df), q = ys)
+# pr1 <- predict(c1, which = "distribution", type = "distribution", newdata = droplevels(df), q = ys)
+# plot(ys, rowMeans(pr0), col = 1, lwd = 2, type = "l")
+# lines(ys, rowMeans(pr1), col = 2, lwd = 2)
+# legend("topleft", c("D = 0", "D = 1"), col = c(1, 2), lwd = 2, bty = "n")
 
 ### Add interventional fit (dashed)
 plot(m0i, which = "distribution", type = "distribution", lwd = 2, lty = 2, add = TRUE, K = 3e2)
