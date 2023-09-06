@@ -12,11 +12,14 @@ library("dHSIC")
 # GEN ---------------------------------------------------------------------
 
 simple_dgp <- function(n = 1e5, doD = FALSE) {
-  H <- rnorm(n)
+  # H <- rnorm(n)
   Z <- sample(0:1, n, TRUE)
-  D <- as.numeric((1 - doD) * H + Z > rnorm(n))
-  Y <- D + H + rnorm(n)
-  data.frame(Y = Y, D = D, Z = Z, H = H)
+  if (doD) cop <- copula::indepCopula(2) else cop <- copula::claytonCopula(-0.5, 2)
+  U <- copula::rCopula(cop, n = n)
+  # D <- as.numeric((1 - doD) * H + Z > rnorm(n))
+  D <- as.numeric(Z > qnorm(U[, 1]))
+  Y <- D + qnorm(U[, 2])
+  data.frame(Y = Y, D = D, Z = Z) # , H = H)
 }
 
 dobs <- simple_dgp()
