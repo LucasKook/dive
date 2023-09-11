@@ -5,6 +5,7 @@ set.seed(241068)
 
 # Dependencies ------------------------------------------------------------
 
+library("tidyverse")
 library("ranger")
 library("tram")
 devtools::load_all()
@@ -12,14 +13,15 @@ devtools::load_all()
 # Data --------------------------------------------------------------------
 
 n <- 1e3
+tcf <- c(-1.43743764887867, -0.798806347083827, -0.197635299911542,
+         -1.58585991850206, 1.81201327858338)
 
 # Data under intervention on D (d0) and observational (d)
-# d0 <- dgp_ex1_cont(n, doD = TRUE)
-# d1 <- dgp_ex1_cont(n, doD = FALSE)
 
 dgp <- function(n = 1e3, doD = FALSE, cf = rnorm(5)) {
   ### Instrument
-  Z <- rt(n, df = 5) # sample(0:1, n, TRUE) # rt(n, df = 5)
+  Z <- rt(n, df = 5)
+  # Z <- sample(0:1, n, TRUE)
   ### Hidden
   H <- rt(n, df = 5)
   ### Treatment
@@ -33,56 +35,66 @@ dgp <- function(n = 1e3, doD = FALSE, cf = rnorm(5)) {
 
   ### Compute oracle
   oracle_distr <- Vectorize(\(y, d = 0) {
-    integrate(\(x) pnorm(y, mean = d + x, sd = 1 + abs(d + x)) * dt(x, df = 5),
-              -20, 20)$value
+    integrate(\(x) pnorm(y, mean = cf[4] * d + cf[5] * x, sd = 1 + abs(d + x)) *
+                dt(x, df = 5), -20, 20)$value
   }, "y")
 
   structure(ret, odist = oracle_distr, cf = cf)
 }
 
-# d0 <- dgp(n, doD = TRUE)
-d1 <- dgp(n, doD = FALSE)
-d1t <- dgp(n, doD = FALSE)
+d0 <- dgp(10 * n, doD = TRUE, cf = tcf)
 
-# plot(ecdf(d0$Y[d0$D == 0]), add = TRUE, lty = 2, cex = 0.1)
+# plot(ecdf(d0$Y[d0$D == 0]), lty = 2, cex = 0.1)
 # plot(ecdf(d0$Y[d0$D == 1]), add = TRUE, col = 2, lty = 2, cex = 0.1)
+# oracle_distr <- attr(d1, "odist")
+# ys <- seq(min(d1$Y), max(d1$Y), length.out = 1e3)
+# F1 <- oracle_distr(ys, d = 1)
+# F0 <- oracle_distr(ys, d = 0)
+# lines(ys, F0, type = "l", lty = 2)
+# lines(ys, F1, type = "l", col = 2, lty = 2)
 
-oracle_distr <- attr(d1, "odist")
+nsim <- 50
+pb <- txtProgressBar(0, nsim, style = 3)
+res <- lapply(1:nsim, \(iter) {
+  setTxtProgressBar(pb, iter)
 
-ys <- seq(min(d1$Y), max(d1$Y), length.out = 1e3)
-F1 <- oracle_distr(ys, d = 1)
-F0 <- oracle_distr(ys, d = 0)
+  ### Generate data
+  d1 <- d1t <- dgp(n, doD = FALSE, cf = tcf)
+  # d1t <- dgp(n, doD = FALSE, cf = tcf)
 
-plot(ys, F0, type = "l", lty = 2)
-lines(ys, F1, type = "l", col = 2, lty = 2)
+  ### Fit RF for control function
+  cf <- ranger(factor(D) ~ Z, data = d1, probability = TRUE)
+  preds <- predict(cf, data = d1t)$predictions
+  d1t$V <- preds[, 1] * (d1t$D == 0) + preds[, 2] * (d1t$D == 1)
 
-# Nonparametric control function ------------------------------------------
+  ### Fit RF with control function prediction and compute RF weights for prediction
+  rf <- ranger(Y ~ D + V, data = d1t, quantreg = TRUE)
 
-### Fit RF for control function
-cf <- ranger(factor(D) ~ Z, data = d1, probability = TRUE)
-preds <- predict(cf, data = d1t)$predictions
-d1t$V <- preds[, 1] * (d1t$D == 0) + preds[, 2] * (d1t$D == 1)
-# d1$V <- d1$D - preds[, 2]
-# d1$V <- randomized_pit(preds[, 1], d1$D, trafo = qnorm)
+  ### Compute CDFs
+  nd0 <- nd1 <- d1t
+  nd0$D <- 0
+  nd1$D <- 1
+  p0 <- predict(rf, data = nd0, quantiles = qs <- seq(0, 1, length.out = 3e2),
+                type = "quantiles")$pred
+  p1 <- predict(rf, data = nd1, quantiles = qs, type = "quantiles")$pred
 
-### Fit RF with control function prediction and compute RF weights for prediction
-rf <- ranger(Y ~ D + V, data = d1t, quantreg = TRUE)
+  data.frame(p0 = colMeans(p0), p1 = colMeans(p1), q = qs)
+})
 
-# TRAM --------------------------------------------------------------------
+pdat <- res %>%
+  bind_rows(.id = "iter") %>%
+  pivot_longer(names_to = "group", values_to = "y", p0:p1)
 
-# m0 <- BoxCox(Y ~ V, data = d1t, subset = d1$D == 0, order = 20)
-# m1 <- BoxCox(Y ~ V, data = d1t, subset = d1$D == 1, order = 20)
-#
-# lines(ys, rowMeans(predict(m0, type = "distribution", newdata = d1t[,-1], q = ys)), lty = 1)
-# lines(ys, rowMeans(predict(m1, type = "distribution", newdata = d1t[,-1], q = ys)), lty = 1, col = 2)
+mdat <- pdat %>% group_by(q, group) %>% summarise(y = mean(y)) %>% ungroup()
 
-# Results -----------------------------------------------------------------
-
-nd0 <- nd1 <- d1t
-nd0$D <- 0
-nd1$D <- 1
-p0 <- predict(rf, data = nd0, quantiles = qs <- seq(0, 1, length.out = 1e3), type = "quantiles")$pred
-p1 <- predict(rf, data = nd1, quantiles = qs, type = "quantiles")$pred
-
-lines(colMeans(p0), qs)
-lines(colMeans(p1), qs, col = 2)
+ggplot(pdat, aes(x = y, y = q, color = group, group = interaction(iter, group))) +
+  geom_line(alpha = 0.1) +
+  geom_line(aes(group = group), data = mdat, lwd = 0.9) +
+  stat_ecdf(inherit.aes = FALSE, aes(x = Y, color = "p0"), data = d0[d0$D == 0, ],
+            lty = 2) +
+  stat_ecdf(inherit.aes = FALSE, aes(x = Y, color = "p1"), data = d0[d0$D == 1, ],
+            lty = 2) +
+  theme_bw() +
+  scale_color_manual(values = c("p0" = "darkblue", p1 = "darkred"),
+                     labels = c("p0" = "D = 0", "p1" = "D = 1")) +
+  labs(color = element_blank())
