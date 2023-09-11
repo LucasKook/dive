@@ -13,11 +13,29 @@ devtools::load_all()
 # Data --------------------------------------------------------------------
 
 n <- 1e3
-tcf <- c(-1.43743764887867, -0.798806347083827, -0.197635299911542,
-         -1.58585991850206, 1.81201327858338)
 
 # Data under intervention on D (d0) and observational (d)
 
+# tcf <- c(-1.43743764887867, -0.798806347083827, -1.58585991850206)
+# dgp <- function(n = 1e3, doD = FALSE, cf = rnorm(3)) {
+#   ### Instrument
+#   Z <- rt(n, df = 5)
+#   # Z <- sample(0:1, n, TRUE)
+#   if (doD) cop <- copula::indepCopula(2) else cop <- copula::claytonCopula(-0.5, 2)
+#   U <- copula::rCopula(cop, n = n)
+#   UD <- U[, 1]
+#   UY <- U[, 2]
+#   ### Treatment
+#   D <- as.numeric(plogis(cf[1] + cf[2] * Z) >= UD)
+#   ### Response
+#   Y <- qnorm(UY, mean = cf[3] * D, sd = 1 + abs(D))
+#   ### Return
+#   ret <- data.frame(Y = Y, D = D, Z = Z, U = U)
+#   structure(ret, cf = cf)
+# }
+
+tcf <- c(-1.43743764887867, -0.798806347083827, -0.197635299911542,
+         -1.58585991850206, 1.81201327858338)
 dgp <- function(n = 1e3, doD = FALSE, cf = rnorm(5)) {
   ### Instrument
   Z <- rt(n, df = 5)
@@ -60,7 +78,7 @@ res <- lapply(1:nsim, \(iter) {
 
   ### Generate data
   d1 <- d1t <- dgp(n, doD = FALSE, cf = tcf)
-  # d1t <- dgp(n, doD = FALSE, cf = tcf)
+  d1t <- dgp(n, doD = FALSE, cf = tcf)
 
   ### Fit RF for control function
   cf <- ranger(factor(D) ~ Z, data = d1, probability = TRUE)
@@ -97,4 +115,4 @@ ggplot(pdat, aes(x = y, y = q, color = group, group = interaction(iter, group)))
   theme_bw() +
   scale_color_manual(values = c("p0" = "darkblue", p1 = "darkred"),
                      labels = c("p0" = "D = 0", "p1" = "D = 1")) +
-  labs(color = element_blank())
+  labs(color = element_blank(), title = "Conditional DGP")
