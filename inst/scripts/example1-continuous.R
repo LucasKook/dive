@@ -12,7 +12,7 @@ devtools::load_all()
 
 # Data --------------------------------------------------------------------
 
-n <- 1e3
+n <- 3e3
 
 # Data under intervention on D (d0) and observational (d)
 dgp <- function(n = 1e3, doD = FALSE, cf = rnorm(5)) {
@@ -27,9 +27,9 @@ dgp <- function(n = 1e3, doD = FALSE, cf = rnorm(5)) {
   ### Covariate
   X <- rnorm(n)
   ### Response
-  NY <- rnorm(n)
-  Y <- qchisq(pnorm(0.5 * X + cf[4] * D + cf[5] * H +
-                      (1 + abs(0.5 * D + 0.3 * H + 0.3 * X)) * NY), df = 10)
+  NY <- rlogis(n)
+  Y <- qchisq(plogis(0.5 * X + cf[4] * D + cf[5] * H +
+                       (1 + abs(0.5 * D + 0.3 * H + 0.3 * X)) * NY), df = 10)
   ### Return
   ret <- data.frame(Y = Y, D = D, X = X, Z = Z, H = H)
   structure(ret, cf = cf)
@@ -37,7 +37,7 @@ dgp <- function(n = 1e3, doD = FALSE, cf = rnorm(5)) {
 
 ### Generate large interventional data set
 tcf <- c(-1.43, -0.79, -1.19, -1.58, 0.81)
-d0 <- dgp(10 * n, doD = TRUE, cf = tcf)
+d0 <- dgp(100 * n, doD = TRUE, cf = tcf)
 
 # Simulation --------------------------------------------------------------
 
