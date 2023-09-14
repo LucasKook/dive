@@ -15,8 +15,8 @@ devtools::load_all()
 n <- 1e4
 
 ### Data under intervention on D (d0) and observational (d1)
-d0 <- marginal_dgp_ex1_binary(n, doD = TRUE)
-d1 <- marginal_dgp_ex1_binary(n, doD = FALSE)
+d0 <- dgp_ex1_binary(n, doD = TRUE)
+d1 <- dgp_ex1_binary(n, doD = FALSE)
 
 glm_marginal_predictions(Y ~ UD, data = d0)
 ranger_marginal_predictions(factor(Y) ~ UD, d0)
