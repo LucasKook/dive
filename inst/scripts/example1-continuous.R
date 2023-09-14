@@ -85,4 +85,4 @@ ggplot(pdat, aes(x = y, y = q, color = group, group = interaction(iter, group)))
   theme_bw() +
   scale_color_manual(values = c("p0" = "darkblue", p1 = "darkred"),
                      labels = c("p0" = "D = 0", "p1" = "D = 1")) +
-  labs(color = element_blank(), title = "Conditional DGP")
+  labs(color = element_blank())
