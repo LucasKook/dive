@@ -12,13 +12,13 @@ devtools::load_all()
 
 # Data --------------------------------------------------------------------
 
-n <- 3e3
+n <- 5e3
 
 # Data under intervention on D (d0) and observational (d)
 dgp <- function(n = 1e3, doD = FALSE, cf = rnorm(5)) {
   ### Instrument
-  Z <- rt(n, df = 5)
-  # Z <- sample(0:1, n, TRUE)
+  # Z <- rt(n, df = 5)
+  Z <- sample(0:1, n, TRUE)
   ### Hidden
   H <- rt(n, df = 5)
   ### Treatment
