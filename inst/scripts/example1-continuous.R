@@ -39,7 +39,7 @@ dgp <- function(n = 1e3, doD = FALSE, cf = rnorm(5), scale = scale_effect) {
   UD <- runif(n)
   lp <- plogis(cf[1] + cf[2] * Z + cf[3] * (1 - doD) * H)
   D <- as.numeric(lp <= UD)
-  ctrl <- lp^(1-D) - D * lp
+  ctrl <- (1 - D) * lp + D * (1 - lp)
   ### Covariate
   X <- rnorm(n)
   ### Response
@@ -53,7 +53,7 @@ dgp <- function(n = 1e3, doD = FALSE, cf = rnorm(5), scale = scale_effect) {
 }
 
 ### Generate large interventional data set
-tcf <- c(-1.43, -0.79, -1.19, -1.58, 0.81)
+tcf <- c(1.43, 0.79, 1.19, 1.58, -0.81)
 d0 <- dgp(10 * n, doD = TRUE, cf = tcf)
 
 ### Interventional data fitted with Colr model gives correct coef/cdf
@@ -80,7 +80,7 @@ res <- lapply(1:nsim, \(iter) {
   } else {
     cf <- ranger(factor(D) ~ Z, data = d1, probability = TRUE)
     preds <- predict(cf, data = d1t)$predictions
-    d1t$V <- preds[, 1]^(1 - d1t$D) - preds[, 1]^d1t$D
+    d1t$V <- (1 - d1t$D) * preds[, 1] + d1t$D * preds[, 2]
   }
 
   # plot(V ~ ctrl, data = d1t)
@@ -116,7 +116,7 @@ ggplot(pdat, aes(x = y, y = q, color = group, group = interaction(iter, group)))
   theme_bw() +
   scale_color_manual(values = c("p0" = "darkblue", p1 = "darkred"),
                      labels = c("p0" = "D = 0", "p1" = "D = 1")) +
-  labs(color = element_blank(), subtitle = fname,
+  labs(color = element_blank(), subtitle = fname, y = "CDF",
        caption = "Dashed lines: Oracle interventional marginal distribution")
 
 # Save --------------------------------------------------------------------
@@ -149,7 +149,7 @@ if (FALSE) {
     theme_bw() +
     scale_color_manual(values = c("p0" = "darkblue", p1 = "darkred"),
                        labels = c("p0" = "D = 0", "p1" = "D = 1")) +
-    labs(color = element_blank())
+    labs(color = element_blank(), y = "CDF")
 
   ggsave(file.path(bpath, "ex1-all.pdf"))
 }
