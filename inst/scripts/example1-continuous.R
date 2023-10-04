@@ -22,7 +22,9 @@ use_oracle_ctrl <- as.logical(args[1])
 scale_effect <- as.logical(args[2])
 split_sample <- as.logical(args[3])
 
-bpath <- "inst/figures/"
+bpath <- file.path("inst", "figures", Sys.Date())
+if (!dir.exists(bpath))
+  dir.create(bpath, recursive = TRUE, showWarnings = FALSE)
 fname <- paste0("ex1-cont_use-oracle-ctrl-", use_oracle_ctrl, "_scale-effect-",
                 scale_effect, "_split-sample-", split_sample, "_n-", n)
 
@@ -37,7 +39,7 @@ dgp <- function(n = 1e3, doD = FALSE, cf = rnorm(5), scale = scale_effect) {
   UD <- runif(n)
   lp <- plogis(cf[1] + cf[2] * Z + cf[3] * (1 - doD) * H)
   D <- as.numeric(lp <= UD)
-  ctrl <- lp^(1-D)
+  ctrl <- lp^(1-D) - D * lp
   ### Covariate
   X <- rnorm(n)
   ### Response
@@ -78,8 +80,11 @@ res <- lapply(1:nsim, \(iter) {
   } else {
     cf <- ranger(factor(D) ~ Z, data = d1, probability = TRUE)
     preds <- predict(cf, data = d1t)$predictions
-    d1t$V <- preds[, 1]^(1 - d1t$D)
+    d1t$V <- preds[, 1]^(1 - d1t$D) - preds[, 1]^d1t$D
   }
+
+  # plot(V ~ ctrl, data = d1t)
+  # abline(lm(V ~ ctrl, data = d1t))
 
   ### Fit RF with ctrl fn prediction and compute RF weights for prediction
   rf <- ranger(Y ~ D + X + V, data = d1t, quantreg = TRUE)
@@ -144,5 +149,7 @@ if (FALSE) {
     theme_bw() +
     scale_color_manual(values = c("p0" = "darkblue", p1 = "darkred"),
                        labels = c("p0" = "D = 0", "p1" = "D = 1")) +
-    labs(color = element_blank(), subtitle = fname)
+    labs(color = element_blank())
+
+  ggsave(file.path(bpath, "ex1-all.pdf"))
 }
