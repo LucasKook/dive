@@ -29,14 +29,15 @@ fname <- paste0("ex1-cont_use-oracle-ctrl-", use_oracle_ctrl, "_scale-effect-",
 # Data under intervention on D (d0) and observational (d)
 dgp <- function(n = 1e3, doD = FALSE, cf = rnorm(5), scale = scale_effect) {
   ### Instrument
-  # Z <- rt(n, df = 5)
-  Z <- sample(0:1, n, TRUE)
+  Z <- rt(n, df = 5)
+  # Z <- sample(0:1, n, TRUE)
   ### Hidden
   H <- rt(n, df = 5)
   ### Treatment
   UD <- runif(n)
-  ctrl <- plogis(cf[1] + cf[2] * Z + cf[3] * (1 - doD) * H)
-  D <- as.numeric(ctrl >= UD)
+  lp <- plogis(cf[1] + cf[2] * Z + cf[3] * (1 - doD) * H)
+  D <- as.numeric(lp <= UD)
+  ctrl <- lp^(1-D)
   ### Covariate
   X <- rnorm(n)
   ### Response
@@ -68,7 +69,7 @@ res <- lapply(1:nsim, \(iter) {
   setTxtProgressBar(pb, iter)
 
   ### Generate data
-  d1 <- d1t <- dgp(n, doD = FALSE, cf = tcf)
+  d1 <- dgp(n, doD = FALSE, cf = tcf)
   d1t <- if (split_sample) dgp(n, doD = FALSE, cf = tcf) else d1
 
   ### Fit RF for control function
@@ -77,7 +78,7 @@ res <- lapply(1:nsim, \(iter) {
   } else {
     cf <- ranger(factor(D) ~ Z, data = d1, probability = TRUE)
     preds <- predict(cf, data = d1t)$predictions
-    d1t$V <- preds[, 1] * (d1t$D == 0) + preds[, 2] * (d1t$D == 1)
+    d1t$V <- preds[, 1]^(1 - d1t$D)
   }
 
   ### Fit RF with ctrl fn prediction and compute RF weights for prediction
@@ -122,3 +123,26 @@ out <- pdat |>
 
 ggsave(file.path(bpath, paste0(fname, ".pdf")))
 write_csv(out, file.path(bpath, paste0(fname, ".csv")))
+
+### Vis all
+if (FALSE) {
+  pdat <- tibble(file = list.files(bpath, "*.csv", full.names = TRUE)) |>
+    mutate(dat = map(file, ~ read_csv(.x, show_col_types = FALSE))) |>
+    unnest(dat)
+  mdat <- pdat %>%
+    group_by(q, group, use_oracle_ctrl, scale_effect, split_sample) %>%
+    summarise(y = mean(y)) %>% ungroup()
+
+  ggplot(pdat, aes(x = y, y = q, color = group, group = interaction(iter, group))) +
+    facet_grid(use_oracle_ctrl ~ split_sample + scale_effect, labeller = label_both) +
+    geom_line(alpha = 0.1) +
+    geom_line(aes(group = group), data = mdat, lwd = 0.9) +
+    stat_ecdf(inherit.aes = FALSE, aes(x = Y, color = "p0"), data = d0[d0$D == 0, ],
+              lty = 2) +
+    stat_ecdf(inherit.aes = FALSE, aes(x = Y, color = "p1"), data = d0[d0$D == 1, ],
+              lty = 2) +
+    theme_bw() +
+    scale_color_manual(values = c("p0" = "darkblue", p1 = "darkred"),
+                       labels = c("p0" = "D = 0", "p1" = "D = 1")) +
+    labs(color = element_blank(), subtitle = fname)
+}
