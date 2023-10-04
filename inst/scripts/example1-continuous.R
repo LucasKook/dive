@@ -1,6 +1,11 @@
 # Distributional random forest with control function
 # LK March 2023
 
+args <- commandArgs(trailingOnly = TRUE)
+if (identical(args, character(0)))
+  args <- c(0, 0, 0)
+args <- as.numeric(args)
+
 set.seed(241068)
 
 # Dependencies ------------------------------------------------------------
@@ -12,10 +17,17 @@ devtools::load_all()
 
 # Data --------------------------------------------------------------------
 
-n <- 5e3
+n <- 3e3
+use_oracle_ctrl <- as.logical(args[1])
+scale_effect <- as.logical(args[2])
+split_sample <- as.logical(args[3])
+
+bpath <- "inst/figures/"
+fname <- paste0("ex1-cont_use-oracle-ctrl-", use_oracle_ctrl, "_scale-effect-",
+                scale_effect, "_split-sample-", split_sample, "_n-", n)
 
 # Data under intervention on D (d0) and observational (d)
-dgp <- function(n = 1e3, doD = FALSE, cf = rnorm(5)) {
+dgp <- function(n = 1e3, doD = FALSE, cf = rnorm(5), scale = scale_effect) {
   ### Instrument
   # Z <- rt(n, df = 5)
   Z <- sample(0:1, n, TRUE)
@@ -23,21 +35,30 @@ dgp <- function(n = 1e3, doD = FALSE, cf = rnorm(5)) {
   H <- rt(n, df = 5)
   ### Treatment
   UD <- runif(n)
-  D <- as.numeric(plogis(cf[1] + cf[2] * Z + cf[3] * (1 - doD) * H) >= UD)
+  ctrl <- plogis(cf[1] + cf[2] * Z + cf[3] * (1 - doD) * H)
+  D <- as.numeric(ctrl >= UD)
   ### Covariate
   X <- rnorm(n)
   ### Response
   NY <- rlogis(n)
-  Y <- qchisq(plogis(0.5 * X + cf[4] * D + cf[5] * H +
-                       (1 + abs(0.5 * D + 0.3 * H + 0.3 * X)) * NY), df = 10)
+  tshift <- 0.5 * X + cf[4] * D + cf[5] * H
+  tscale <- (1 + abs(0.5 * D + 0.3 * H + 0.3 * X))^scale
+  Y <- qchisq(plogis(tshift + tscale * NY), df = 10)
   ### Return
-  ret <- data.frame(Y = Y, D = D, X = X, Z = Z, H = H)
+  ret <- data.frame(Y = Y, D = D, X = X, Z = Z, H = H, ctrl = ctrl)
   structure(ret, cf = cf)
 }
 
 ### Generate large interventional data set
 tcf <- c(-1.43, -0.79, -1.19, -1.58, 0.81)
-d0 <- dgp(100 * n, doD = TRUE, cf = tcf)
+d0 <- dgp(10 * n, doD = TRUE, cf = tcf)
+
+### Interventional data fitted with Colr model gives correct coef/cdf
+# m <- Colr(Y ~ D + X + H, data = d0, prob = c(0.001, 0.999), order = 10)
+# m0 <- Colr(Y | D ~ 1, data = d0, prob = c(0.001, 0.999), order = 10)
+# plot(m0, which = "distribution")
+# lines(ecdf(d0$Y[d0$D == 0]), col = 2)
+# lines(ecdf(d0$Y[d0$D == 1]), col = 2)
 
 # Simulation --------------------------------------------------------------
 
@@ -48,12 +69,16 @@ res <- lapply(1:nsim, \(iter) {
 
   ### Generate data
   d1 <- d1t <- dgp(n, doD = FALSE, cf = tcf)
-  d1t <- dgp(n, doD = FALSE, cf = tcf)
+  d1t <- if (split_sample) dgp(n, doD = FALSE, cf = tcf) else d1
 
   ### Fit RF for control function
-  cf <- ranger(factor(D) ~ Z, data = d1, probability = TRUE)
-  preds <- predict(cf, data = d1t)$predictions
-  d1t$V <- preds[, 1] * (d1t$D == 0) + preds[, 2] * (d1t$D == 1)
+  if (use_oracle_ctrl) {
+    d1t$V <- d1t$ctrl
+  } else {
+    cf <- ranger(factor(D) ~ Z, data = d1, probability = TRUE)
+    preds <- predict(cf, data = d1t)$predictions
+    d1t$V <- preds[, 1] * (d1t$D == 0) + preds[, 2] * (d1t$D == 1)
+  }
 
   ### Fit RF with ctrl fn prediction and compute RF weights for prediction
   rf <- ranger(Y ~ D + X + V, data = d1t, quantreg = TRUE)
@@ -85,4 +110,15 @@ ggplot(pdat, aes(x = y, y = q, color = group, group = interaction(iter, group)))
   theme_bw() +
   scale_color_manual(values = c("p0" = "darkblue", p1 = "darkred"),
                      labels = c("p0" = "D = 0", "p1" = "D = 1")) +
-  labs(color = element_blank())
+  labs(color = element_blank(), subtitle = fname,
+       caption = "Dashed lines: Oracle interventional marginal distribution")
+
+# Save --------------------------------------------------------------------
+
+out <- pdat |>
+  mutate(use_oracle_ctrl = use_oracle_ctrl,
+         scale_effect = scale_effect,
+         split_sample = split_sample)
+
+ggsave(file.path(bpath, paste0(fname, ".pdf")))
+write_csv(out, file.path(bpath, paste0(fname, ".csv")))
