@@ -53,7 +53,7 @@ dgp <- function(n = 1e3, doD = FALSE, cf = rnorm(5), scale = scale_effect) {
 }
 
 ### Generate large interventional data set
-tcf <- c(-1.43, -0.79, -1.19, -1.58, 0.81)
+tcf <- c(1.43, 0.79, 1.19, 1.58, -0.81)
 d0 <- dgp(10 * n, doD = TRUE, cf = tcf)
 
 ### Interventional data fitted with Colr model gives correct coef/cdf
