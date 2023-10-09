@@ -42,7 +42,7 @@ orc <- Vectorize(\(y, d) (plogis(y, location = - 2 * (1 + d)) +
 # ys <- seq(-7, 7, length.out = 1e3)
 # plot(ys, orc(ys, d = 0), type = "l", col = "darkred")
 # lines(ys, orc(ys, d = 1), type = "l", col = "darkblue")
-# dd <- dgp(n = 3e2)
+# dd <- dgp(n = 1e3)
 # m <- Survreg(Y ~ H * D, data = dd, dist = "logistic")
 # dd0 <- dd1 <- dd
 # dd0$D <- 0
@@ -52,11 +52,12 @@ orc <- Vectorize(\(y, d) (plogis(y, location = - 2 * (1 + d)) +
 # lines(ys, rowMeans(p0), lty = 2, col = "darkred")
 # lines(ys, rowMeans(p1), lty = 2, col = "darkblue")
 #
-# rf <- ranger(Y ~ D + H, data = dd, quantreg = TRUE)
-# qs <- seq(0.001, 0.999, length.out = 3e2)
+# rf0 <- ranger(Y ~ H, data = dd[dd$D == 0, ], quantreg = TRUE, num.trees = 2e3)
+# rf1 <- ranger(Y ~ H, data = dd[dd$D == 1, ], quantreg = TRUE, num.trees = 2e3)
+# qs <- seq(0.001, 0.999, length.out = 1e3)
 # nd0 <- nd1 <- dd; nd0$D <- 0; nd1$D <- 1
-# p0r <- predict(rf, type = "quantiles", data = nd0, quantiles = qs)$pred
-# p1r <- predict(rf, type = "quantiles", data = nd1, quantiles = qs)$pred
+# p0r <- predict(rf0, type = "quantiles", data = nd0, quantiles = qs)$pred
+# p1r <- predict(rf1, type = "quantiles", data = nd1, quantiles = qs)$pred
 # cdf0 <- Vectorize(\(y) mean(apply(p0r, 1, \(x) qs[which.min(abs(x - y))])))
 # cdf1 <- Vectorize(\(y) mean(apply(p1r, 1, \(x) qs[which.min(abs(x - y))])))
 # lines(ys, cdf0(ys), lty = 3, col = "darkred", lwd = 1.5)
@@ -86,38 +87,50 @@ res <- lapply(1:nsim, \(iter) {
   preds <- predict(cf, data = d1t)$predictions
   d1t$V <- preds[, 1]^(1 - d1t$D)
 
-  ### RF + CTRL out-of-sample
-  CTRL <- ranger(Y ~ D + V, data = d1t, quantreg = TRUE)
+  d1t0 <- d1t[d1t$D == 0, ]
+  d1t1 <- d1t[d1t$D == 1, ]
 
   ### RF + CTRL out-of-sample
-  INSA <- ranger(Y ~ D + iV, data = d1t, quantreg = TRUE)
+  CTRL0 <- ranger(Y ~ V, data = d1t0, quantreg = TRUE)
+  CTRL1 <- ranger(Y ~ V, data = d1t1, quantreg = TRUE)
+
+  ### RF + CTRL out-of-sample
+  INSA0 <- ranger(Y ~ iV, data = d1t0, quantreg = TRUE)
+  INSA1 <- ranger(Y ~ iV, data = d1t1, quantreg = TRUE)
 
   ### RF + oracle CTRL
-  ORAC <- ranger(Y ~ D + ctrl, data = d1t, quantreg = TRUE)
+  ORAC0 <- ranger(Y ~ ctrl, data = d1t0, quantreg = TRUE)
+  ORAC1 <- ranger(Y ~ ctrl, data = d1t1, quantreg = TRUE)
 
   ### RF + confounder
-  CONF <- ranger(Y ~ D + H, data = d1t, quantreg = TRUE)
+  CONF0 <- ranger(Y ~ H, data = d1t0, quantreg = TRUE)
+  CONF1 <- ranger(Y ~ H, data = d1t1, quantreg = TRUE)
 
   ### Compute CDFs forests
-  all <- list("CTRL" = CTRL, "ORAC" = ORAC, "CONF" = CONF, "INSA" = INSA)
-  nd0 <- nd1 <- d1t
-  nd0$D <- 0
-  nd1$D <- 1
+  all <- list(
+    "CTRL0" = CTRL0,
+    "CTRL1" = CTRL1,
+    "ORAC0" = ORAC0,
+    "ORAC1" = ORAC1,
+    "CONF0" = CONF0,
+    "CONF1" = CONF1,
+    "INSA0" = INSA0,
+    "INSA1" = INSA1
+    )
   qs <- seq(0.001, 0.999, length.out = 3e2)
   ys <- quantile(d1t$Y, probs = qs)
   lapply(seq_along(all), \(idx) {
     rf <- all[[idx]]
-    p0 <- predict(rf, data = nd0, quantiles = qs, type = "quantiles")$pred
-    p1 <- predict(rf, data = nd1, quantiles = qs, type = "quantiles")$pred
-    cdf0 <- Vectorize(\(y) mean(apply(p0, 1, \(x) qs[which.min(abs(x - y))])))
-    cdf1 <- Vectorize(\(y) mean(apply(p1, 1, \(x) qs[which.min(abs(x - y))])))
-    data.frame(p0 = cdf0(ys), p1 = cdf1(ys), y = ys, method = names(all)[idx], q = qs)
+    ps <- predict(rf, data = d1t, quantiles = qs, type = "quantiles")$pred
+    cdf <- Vectorize(\(y) mean(apply(ps, 1, \(x) qs[which.min(abs(x - y))])))
+    data.frame(cdf = cdf(ys), y = ys, method = names(all)[idx], q = qs,
+               group = ifelse(grepl("0", names(all)[idx]), "p0", "p1"))
   }) |> bind_rows()
 })
 
 pdat <- res %>%
-  bind_rows(.id = "iter") %>%
-  pivot_longer(names_to = "group", values_to = "cdf", p0:p1)
+  bind_rows(.id = "iter") |>
+  mutate(method = str_remove(method, "[0-9]"))
 
 mdat <- pdat %>% group_by(q, group, method) %>% summarise(cdf = mean(cdf), y = mean(y)) %>% ungroup()
 
