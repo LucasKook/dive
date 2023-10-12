@@ -12,12 +12,14 @@ devtools::load_all()
 
 # Data --------------------------------------------------------------------
 
-n <- 1e3
+n <- 3e2
 
 bpath <- file.path("inst", "figures", Sys.Date())
 if (!dir.exists(bpath))
   dir.create(bpath, recursive = TRUE, showWarnings = FALSE)
 fname <- paste0("ex1_n", n)
+
+pz <- \(x, location = 0) pnorm(x, mean = location) # plogis
 
 dgp <- function(n = 1e3) {
   ### Instrument
@@ -26,8 +28,8 @@ dgp <- function(n = 1e3) {
   H <- sample(c(-1, 1), n, TRUE)
   ### Treatment
   UD <- runif(n)
-  D <- as.numeric(plogis(Z + H) <= UD)
-  ctrl <- \(z) (plogis(z - 1) + plogis(z + 1))
+  D <- as.numeric(pz(Z + H) <= UD)
+  ctrl <- \(z) (pz(z - 1) + pz(z + 1)) / 2
   ### Response
   NY <- rlogis(n)
   Y <- 2 * (1 + D) * H + NY
@@ -78,25 +80,25 @@ res <- lapply(1:nsim, \(iter) {
   d1t <- dgp(n)
 
   ### In-sample CTRL
-  cf <- ranger(factor(D) ~ Z, data = d1t, probability = TRUE)
-  preds <- predict(cf, data = d1t)$predictions
-  d1t$iV <- preds[, 1]^(1 - d1t$D)
+  # cf <- ranger(factor(D) ~ Z, data = d1t, probability = TRUE)
+  # preds <- predict(cf, data = d1t)$predictions
+  # d1t$iV <- preds[, 1]^(1 - d1t$D)
 
   ### Out-of-sample CTRL
-  cf <- ranger(factor(D) ~ Z, data = d1, probability = TRUE)
-  preds <- predict(cf, data = d1t)$predictions
-  d1t$V <- preds[, 1]^(1 - d1t$D)
+  # cf <- ranger(factor(D) ~ Z, data = d1, probability = TRUE)
+  # preds <- predict(cf, data = d1t)$predictions
+  # d1t$V <- preds[, 1]^(1 - d1t$D)
 
   d1t0 <- d1t[d1t$D == 0, ]
   d1t1 <- d1t[d1t$D == 1, ]
 
-  ### RF + CTRL out-of-sample
-  CTRL0 <- ranger(Y ~ V, data = d1t0, quantreg = TRUE)
-  CTRL1 <- ranger(Y ~ V, data = d1t1, quantreg = TRUE)
-
-  ### RF + CTRL out-of-sample
-  INSA0 <- ranger(Y ~ iV, data = d1t0, quantreg = TRUE)
-  INSA1 <- ranger(Y ~ iV, data = d1t1, quantreg = TRUE)
+  # ### RF + CTRL out-of-sample
+  # CTRL0 <- ranger(Y ~ V, data = d1t0, quantreg = TRUE)
+  # CTRL1 <- ranger(Y ~ V, data = d1t1, quantreg = TRUE)
+  #
+  # ### RF + CTRL out-of-sample
+  # INSA0 <- ranger(Y ~ iV, data = d1t0, quantreg = TRUE)
+  # INSA1 <- ranger(Y ~ iV, data = d1t1, quantreg = TRUE)
 
   ### RF + oracle CTRL
   ORAC0 <- ranger(Y ~ ctrl, data = d1t0, quantreg = TRUE)
@@ -108,15 +110,15 @@ res <- lapply(1:nsim, \(iter) {
 
   ### Compute CDFs forests
   all <- list(
-    "CTRL0" = CTRL0,
-    "CTRL1" = CTRL1,
+    # "CTRL0" = CTRL0,
+    # "CTRL1" = CTRL1,
     "ORAC0" = ORAC0,
     "ORAC1" = ORAC1,
     "CONF0" = CONF0,
-    "CONF1" = CONF1,
-    "INSA0" = INSA0,
-    "INSA1" = INSA1
-    )
+    "CONF1" = CONF1#,
+    # "INSA0" = INSA0,
+    # "INSA1" = INSA1
+  )
   qs <- seq(0.001, 0.999, length.out = 3e2)
   ys <- quantile(d1t$Y, probs = qs)
   lapply(seq_along(all), \(idx) {
