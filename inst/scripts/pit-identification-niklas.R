@@ -3,20 +3,33 @@ set.seed(42)
 library("tram")
 
 dgp <- function(n = 1e3, doD = FALSE) {
-  Z <- rlogis(n)
-  H <- rlogis(n)
-  D <- as.numeric((3 * Z + (1 - doD) * H) / 2 > rlogis(n))
-  Y <- D + H + rnorm(n, sd = abs(H))
+
+  # Exogenous variables
+  H <- rnorm(n)
+  Z <- runif(n, 0, 0.25)
+  eps <- rnorm(n)*0.05
+
+  # Endogenous variables
+  D0 <- sapply(Z, function(p) rbinom(1, 1, p))
+  D1 <- sapply(Z, function(p) rbinom(1, 1, (4^(1 - doD))*p))
+  D <- D0
+  D[H > 0] <- D1[H > 0]
+
+  # Two possible responses
+  # Y <- H + D + eps
+  Y <- H*(D + 1) + eps
+
+  ### Return
   data.frame(Y = Y, D = D, Z = Z, H = H)
 }
 
-d <- dgp(1e3)
+d <- dgp(3e3)
 
-hist(rr <- residuals(Colr(Y | D ~ 1, data = d, order = 30)))
+hist(rr <- predict(BoxCox(Y | D ~ 1, data = d, order = 30), type = "distribution"))
 coin::independence_test(rr ~ d$Z, xtrafo = rank, ytrafo = rank)
 
-PIT <- Vectorize(\(y, d, sd = 1) integrate(
-  \(h) pnorm(y, mean = d + h, sd = abs(h) * sd) * dlogis(h), -Inf, Inf)$value,
+PIT <- Vectorize(\(y, d, sd = 0.05) integrate(
+  \(h) pnorm(y, mean = h * (1 + d), sd = sd) * dnorm(h), -Inf, Inf)$value,
   c("y", "d")
 )
 
@@ -36,8 +49,8 @@ hist(R)
 hist(R1)
 
 library("dare")
-m <- ColrDA(Y | D ~ 1, anchor = ~ Z, data = d, order = 30, xi = 3e2,
-            optimizer = optimizer_adam(0.1), loss = "indep")
+m <- BoxCoxDA(Y | D ~ 1, anchor = ~ Z, data = d, order = 30, xi = 1e4,
+              optimizer = optimizer_adam(0.1), loss = "indep")
 fit(m, epochs = 1e4)
 plot(ecdf(predict(m, type = "cdf")))
 abline(0, 1)

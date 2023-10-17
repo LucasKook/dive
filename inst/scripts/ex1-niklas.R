@@ -12,7 +12,7 @@ devtools::load_all()
 
 # Data --------------------------------------------------------------------
 
-n <- 6e2
+n <- 3e3
 
 bpath <- file.path("inst", "figures", Sys.Date())
 if (!dir.exists(bpath))
@@ -40,6 +40,7 @@ dgp <- function(n = 1e3) {
 
   p1 <- Z + D * Z
   ctrl <- D * p1 + (1 - D) * (1 - p1)
+  ctrl <- D * (p1 > 0.5) + (1 - D) * (p1 <= 0.5)
   # ctrl <- (1 - p1)^(1 - D)
 
   ### Return
@@ -97,6 +98,8 @@ res <- lapply(1:nsim, \(iter) {
   # preds <- predict(cf, data = d1t)$predictions
   # d1t$V <- preds[, 1]^(1 - d1t$D)
 
+  d1t$iH <- as.numeric(d1t$H <= 0)
+
   d1t0 <- d1t[d1t$D == 0, ]
   d1t1 <- d1t[d1t$D == 1, ]
 
@@ -113,8 +116,8 @@ res <- lapply(1:nsim, \(iter) {
   ORAC1 <- ranger(Y ~ ctrl, data = d1t1, quantreg = TRUE)
 
   ### RF + confounder
-  CONF0 <- ranger(Y ~ H, data = d1t0, quantreg = TRUE)
-  CONF1 <- ranger(Y ~ H, data = d1t1, quantreg = TRUE)
+  CONF0 <- ranger(Y ~ iH, data = d1t0, quantreg = TRUE)
+  CONF1 <- ranger(Y ~ iH, data = d1t1, quantreg = TRUE)
 
   ### Compute CDFs forests
   all <- list(
