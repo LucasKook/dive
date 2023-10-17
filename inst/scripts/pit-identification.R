@@ -1,4 +1,6 @@
 
+library("tram")
+
 dgp <- function(n = 1e3, doD = FALSE) {
   Z <- rlogis(n)
   H <- rlogis(n)
@@ -7,7 +9,10 @@ dgp <- function(n = 1e3, doD = FALSE) {
   data.frame(Y = Y, D = D, Z = Z, H = H)
 }
 
-d <- dgp(1e3)
+d <- dgp(3e3)
+
+hist(rr <- residuals(Colr(Y | D ~ 1, data = d, order = 30)))
+coin::independence_test(rr ~ d$Z, xtrafo = rank, ytrafo = rank)
 
 PIT <- Vectorize(\(y, d, sd = 1) integrate(
   \(h)pnorm(y, mean = d + h, sd = abs(h) * sd) * dlogis(h), -Inf, Inf)$value,
@@ -30,17 +35,11 @@ hist(R)
 hist(R1)
 
 library("dare")
-d$Y <- as.ordered(d$Y)
-m <- PolrDA(Y | D ~ 1, data = d, xi = 1e2, anchor = ~ Z, loss = "indep",
-          optimizer = optimizer_adam(0.00001))
-tmp <- get_weights(m$model)
-tmp[[1]][] <- c(qlogis(ecdf(d$Y)(sort(d$Y)))[-length(d$Y)], 1)
-tmp[[2]][] <- c(qlogis(ecdf(d$Y)(sort(d$Y)))[-length(d$Y)], 1)
-tmp[[3]][] <- 0
-set_weights(m$model, tmp)
+m <- ColrDA(Y | D ~ 1, anchor = ~ Z, data = d, order = 30, xi = 1e2,
+            optimizer = optimizer_adam(0.1))
 fit(m, epochs = 1e4)
-c(unlist(coef(m, "int")), unlist(coef(m)))
-hist(predict(m, type = "cdf"))
+plot(ecdf(residuals(m)))
+abline(0.5, 0.5)
 
 # library("tram")
 # dd <- dgp(1e4, TRUE)
