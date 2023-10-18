@@ -63,17 +63,41 @@ plot(ecdf(g1))
 plot(ecdf(g2), add = TRUE, col = 2)
 
 trange <- c(max(range(g1)[1], range(g2)[1]), min(range(g1)[2], range(g2)[2]))
-curve(dte(x), trange[1], trange[2])
-curve(qte(x), 0, 1)
-curve(tte(x), trange[1], trange[2])
-curve(rte(x), trange[1], trange[2])
-curve(dok(x), trange[1], trange[2])
+ys <- seq(trange[1], trange[2], length.out = 1e3)
+res <- lapply(1:2999, \(iter) {
+  idx1 <- sample.int(length(g1), length(g1), replace = TRUE)
+  idx2 <- sample.int(length(g2), length(g2), replace = TRUE)
+  ecdf(g2[idx2])(ys) - ecdf(g1[idx1])(ys)
+})
+out <- do.call("rbind", res)
+
+plot(ys, dte(ys), type = "s", ylim = c(-0.3, 0.1))
+lines(ys, apply(out, 2, quantile, probs = 0.025), type = "s")
+lines(ys, apply(out, 2, quantile, probs = 0.975), type = "s")
+abline(h = 0, col = "gray80")
+
+curve(qte(x), 0, 1, type = "s")
+
+plot(ys, tte(ys), type = "s")
+ys <- seq(trange[1], trange[2], length.out = 1e3)
+res <- lapply(1:2999, \(iter) {
+  idx1 <- sample.int(length(g1), length(g1), replace = TRUE)
+  idx2 <- sample.int(length(g2), length(g2), replace = TRUE)
+  log(-log(1-ecdf(g2[idx2])(ys))) - log(-log(1-ecdf(g1[idx1])(ys)))
+})
+out <- do.call("rbind", res)
+lines(ys, apply(out, 2, quantile, probs = 0.025, na.rm = TRUE), type = "s")
+lines(ys, apply(out, 2, quantile, probs = 0.975, na.rm = TRUE), type = "s")
+abline(h = 0, col = "gray80")
+
+curve(rte(x), trange[1], trange[2], type = "s")
+curve(dok(x), trange[1], trange[2], type = "s")
 
 # With tram ---------------------------------------------------------------
 
 # Ignoring censoring! TODO: Update with KM estimator
 GBSG2$surv <- with(GBSG2, Surv(time, rep(1, nrow(GBSG2)))) # cens))
-m <- Coxph(surv | 0 + horTh ~ 1, data = GBSG2, prob = c(0.001, 0.999), order = 10)
+m <- Coxph(surv | 0 + horTh ~ 1, data = GBSG2, prob = c(1e-6, 1 - 1e-6), order = 15)
 nd0 <- data.frame(
   surv = seq(0, max(GBSG2$time), length.out = 1e3),
   horTh = unique(GBSG2$horTh)[1]
@@ -84,9 +108,21 @@ nd1 <- data.frame(
 )
 
 # Hazard
-plot(nd0$surv, tte(nd0$surv), type = "l")
+plot(nd0$surv, tte(nd0$surv), type = "s")
 sTTE <- predict(m, type = "trafo", newdata = nd1) - predict(m, type = "trafo", newdata = nd0)
 lines(nd0$surv, sTTE, type = "l")
+
+res <- lapply(1:999, \(iter) {
+  cat("-", iter, "-")
+  idx <- sample.int(nrow(GBSG2), nrow(GBSG2), replace = TRUE)
+  mm <- Coxph(surv | 0 + horTh ~ 1, data = GBSG2[idx, ], prob = c(1e-6, 1 - 1e-6))
+  predict(mm, type = "trafo", newdata = nd1) -
+    predict(mm, type = "trafo", newdata = nd0)
+})
+out <- do.call("rbind", res)
+lines(ys, apply(out, 2, quantile, probs = 0.025, na.rm = TRUE), type = "s")
+lines(ys, apply(out, 2, quantile, probs = 0.975, na.rm = TRUE), type = "s")
+abline(h = 0, col = "gray80")
 
 # CDF
 plot(nd0$surv, dte(nd0$surv), type = "l")
@@ -171,7 +207,7 @@ pd <- nd0 %>%
   mutate(type = factor(type, levels = c("DTE", "QTE", "TTE", "RTE", "DOK", "RPD")))
 
 ggplot(pd %>% filter(type %in% c("DTE", "QTE", "TTE", "DOK")), aes(x = surv, y = est, color = method)) +
-  geom_line() +
+  geom_step() +
   facet_wrap(~ type, scales = "free", nrow = 2, labeller = as_labeller(c(
     "DTE" = "Distributional", "QTE" = "Quantile", "TTE" = "Log-hazard",
     "DOK" = "Doksum-type"
