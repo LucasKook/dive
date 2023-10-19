@@ -97,7 +97,7 @@ curve(dok(x), trange[1], trange[2], type = "s")
 
 # Ignoring censoring! TODO: Update with KM estimator
 GBSG2$surv <- with(GBSG2, Surv(time, rep(1, nrow(GBSG2)))) # cens))
-m <- Coxph(surv | 0 + horTh ~ 1, data = GBSG2, prob = c(1e-6, 1 - 1e-6), order = 15)
+m <- Coxph(surv | 0 + horTh ~ 1, data = GBSG2, prob = c(1e-7, 1 - 1e-7), order = 15)
 nd0 <- data.frame(
   surv = seq(0, max(GBSG2$time), length.out = 1e3),
   horTh = unique(GBSG2$horTh)[1]
@@ -125,25 +125,25 @@ lines(ys, apply(out, 2, quantile, probs = 0.975, na.rm = TRUE), type = "s")
 abline(h = 0, col = "gray80")
 
 # CDF
-plot(nd0$surv, dte(nd0$surv), type = "l")
+plot(nd0$surv, dte(nd0$surv), type = "s")
 sDTE <- predict(m, type = "distribution", newdata = nd1) - predict(m, type = "distribution", newdata = nd0)
 lines(nd0$surv, sDTE, type = "l")
 
 # Quantile
 ps <- seq(1e-6, 1 - 1e-6, length.out = 1e3)
-plot(ps, qte(ps), type = "l")
+plot(ps, qte(ps), type = "s")
 sQTE <- as.double(predict(m, type = "quantile", newdata = nd1[1, ], prob = ps)) -
   as.double(predict(m, type = "quantile", newdata = nd0[1, ], prob = ps))
 lines(ps, sQTE, type = "l")
 
 # Risk ratio
-plot(nd0$surv, rte(nd0$surv), type = "l")
+plot(nd0$surv, rte(nd0$surv), type = "s")
 sRTE <- log(predict(m, type = "distribution", newdata = nd1) /
               predict(m, type = "distribution", newdata = nd0))
 lines(nd0$surv, sRTE, type = "l")
 
 # Doksum
-plot(nd0$surv, dok(nd0$surv), type = "l")
+plot(nd0$surv, dok(nd0$surv), type = "s")
 sDOK <- as.double(predict(m, type = "quantile", newdata = nd0[1, ],
   prob = predict(m, type = "distribution", newdata = nd1[-1, ]))) - nd0$surv[-1]
 lines(nd0$surv[-1], sDOK, type = "l")

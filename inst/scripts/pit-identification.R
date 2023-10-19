@@ -10,7 +10,35 @@ dgp <- function(n = 1e3, doD = FALSE) {
   data.frame(Y = Y, D = D, Z = Z, H = H)
 }
 
-d <- dgp(1e3)
+do <- dgp(1e5, doD = TRUE)
+F0 <- ecdf(do$Y[do$D == 0])
+F1 <- ecdf(do$Y[do$D == 1])
+FF <- Vectorize(\(y, d) d * F1(y) + (1 - d) * F0(y))
+
+d <- dgp(1e5)
+F0o <- ecdf(d$Y[d$D == 0])
+F1o <- ecdf(d$Y[d$D == 1])
+FFo <- Vectorize(\(y, d) d * F1o(y) + (1 - d) * F0o(y))
+
+plot(ecdf(FF(d$Y, d$D)))
+abline(0, 1)
+
+plot(ecdf(FFo(d$Y, d$D)))
+abline(0, 1)
+
+coin::independence_test(FF(d$Y, d$D) ~ d$Z, xtrafo = rank, ytrafo = rank)
+coin::independence_test(FFo(d$Y, d$D) ~ d$Z, xtrafo = rank, ytrafo = rank)
+
+# plot(ecdf(mean(d$D == 0) * ecdf(do$Y[do$D == 0])(d$Y) +
+#             mean(d$D == 1) * ecdf(do$Y[do$D == 1])(d$Y)),
+#      cex = 0.1)
+# abline(0, 1)
+#
+# plot(ecdf(ecdf(do$Y[do$D == 0])(d$Y[d$D == 0])), add = TRUE)
+# plot(ecdf(ecdf(do$Y[do$D == 1])(d$Y[d$D == 1])), add = TRUE)
+#
+# plot(ecdf(ecdf(do$Y)(d$Y[d$D == 0])), add = TRUE, cex = 0.1)
+# plot(ecdf(ecdf(do$Y)(d$Y[d$D == 1])), add = TRUE, cex = 0.1)
 
 plot(ecdf((rr <- predict(mm <- Colr(Y | D ~ 1, data = d, order = 30), type = "distribution"))))
 abline(0, 1)
