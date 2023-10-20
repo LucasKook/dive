@@ -10,24 +10,35 @@ dgp <- function(n = 1e3, doD = FALSE) {
   data.frame(Y = Y, D = D, Z = Z, H = H)
 }
 
+### Y | do(D = d), d \in {0, 1} evaluated at (Y, D)
 do <- dgp(1e5, doD = TRUE)
 F0 <- ecdf(do$Y[do$D == 0])
 F1 <- ecdf(do$Y[do$D == 1])
 FF <- Vectorize(\(y, d) d * F1(y) + (1 - d) * F0(y))
+plot(ecdf(FF(d$Y, d$D))) # Unif and independent
+abline(0, 1)
+coin::independence_test(FF(d$Y, d$D) ~ d$Z | factor(d$D), xtrafo = rank, ytrafo = rank)
 
-d <- dgp(1e5)
+### Y | D = d, d \in {0, 1} evaluated at (Y, D)
+d <- dgp(3e3)
 F0o <- ecdf(d$Y[d$D == 0])
 F1o <- ecdf(d$Y[d$D == 1])
 FFo <- Vectorize(\(y, d) d * F1o(y) + (1 - d) * F0o(y))
-
-plot(ecdf(FF(d$Y, d$D)))
+plot(ecdf(FFo(d$Y, d$D))) # Unif but not independent
 abline(0, 1)
-
-plot(ecdf(FFo(d$Y, d$D)))
-abline(0, 1)
-
-coin::independence_test(FF(d$Y, d$D) ~ d$Z, xtrafo = rank, ytrafo = rank)
 coin::independence_test(FFo(d$Y, d$D) ~ d$Z, xtrafo = rank, ytrafo = rank)
+
+### Marginal Y evaluated at Y
+MF <- ecdf(do$Y)
+plot(ecdf(MF(d$Y))) # Unif but not independent
+abline(0, 1)
+coin::independence_test(MF(d$Y) ~ d$Z, xtrafo = rank, ytrafo = rank)
+
+ys <- seq(-10, 10, length.out = 1e3)
+plot(ys, FF(ys, 0), type = "l")
+lines(ys, FF(ys, 1))
+lines(ys, FFo(ys, 0), type = "l", lty = 2)
+lines(ys, FFo(ys, 1), lty = 2)
 
 # plot(ecdf(mean(d$D == 0) * ecdf(do$Y[do$D == 0])(d$Y) +
 #             mean(d$D == 1) * ecdf(do$Y[do$D == 1])(d$Y)),
