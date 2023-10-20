@@ -17,7 +17,7 @@ F1 <- ecdf(do$Y[do$D == 1])
 FF <- Vectorize(\(y, d) d * F1(y) + (1 - d) * F0(y))
 plot(ecdf(FF(d$Y, d$D))) # Unif and independent
 abline(0, 1)
-coin::independence_test(FF(d$Y, d$D) ~ d$Z | factor(d$D), xtrafo = rank, ytrafo = rank)
+coin::independence_test(FF(d$Y, d$D) ~ d$Z, xtrafo = rank, ytrafo = rank)
 
 ### Y | D = d, d \in {0, 1} evaluated at (Y, D)
 d <- dgp(3e3)
