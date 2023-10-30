@@ -35,12 +35,12 @@ dgp <- function(n = 1e3) {
   D[H > 0] <- D1[H > 0]
 
   # Two possible responses
-  # Y <- H + D + eps
-  Y <- H*(D + 1) + eps
+  Y <- H + D + eps
+  # Y <- H*(D + 1) + eps
 
   p1 <- Z + D * Z
-  ctrl <- D * p1 + (1 - D) * (1 - p1)
-  ctrl <- D * (p1 > 0.5) + (1 - D) * (p1 <= 0.5)
+  # ctrl <- D * p1 + (1 - D) * (1 - p1)
+  ctrl <- D * (p1 > 0.5) - (1 - D) * (p1 <= 0.5)
   # ctrl <- (1 - p1)^(1 - D)
 
   ### Return
@@ -48,7 +48,8 @@ dgp <- function(n = 1e3) {
 }
 
 ### Oracle conditional distribution
-orc <- Vectorize(\(y, d) integrate(\(h) pnorm(y, mean = h * (1 + d), sd = 0.05) * dnorm(h), -Inf, Inf)$value, "y")
+# orc <- Vectorize(\(y, d) integrate(\(h) pnorm(y, mean = h * (1 + d), sd = 0.05) * dnorm(h), -Inf, Inf)$value, "y")
+orc <- Vectorize(\(y, d) integrate(\(h) pnorm(y, mean = h + d, sd = 0.05) * dnorm(h), -Inf, Inf)$value, "y")
 
 # ys <- seq(-7, 7, length.out = 1e3)
 # plot(ys, orc(ys, d = 0), type = "l", col = "darkred")
