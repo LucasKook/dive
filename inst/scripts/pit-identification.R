@@ -34,6 +34,11 @@ plot(ecdf(MF(d$Y))) # Unif but not independent
 abline(0, 1)
 coin::independence_test(MF(d$Y) ~ d$Z, xtrafo = rank, ytrafo = rank)
 
+### Mean D version not independent (because marginalized)
+plot(ecdf(blub <- mean(d$D) * F1(d$Y) + (1 - mean(d$D)) * F0(d$Y)))
+abline(0, 1)
+coin::independence_test(blub ~ Z, data = d, xtrafo = rank, ytrafo = rank)
+
 ys <- seq(-10, 10, length.out = 1e3)
 plot(ys, FF(ys, 0), type = "l")
 lines(ys, FF(ys, 1))
