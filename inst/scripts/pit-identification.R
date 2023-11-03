@@ -22,11 +22,11 @@ abline(0, 1)
 coin::independence_test(FF(d$Y, d$D) ~ d$Z, xtrafo = rank, ytrafo = rank)
 
 ### Y | do(D = d), d \in {0, 1} evaluated at (Y, d)
-plot(ecdf(FF(d$Y[d$D == 0], d$D[d$D == 0]))) # Not unif and not independent
-plot(ecdf(FF(d$Y[d$D == 1], d$D[d$D == 1])), add = TRUE) # Not unif and not independent
+plot(ecdf(FF(d$Y[d$D == 0], 0))) # Not unif and not independent
+plot(ecdf(FF(d$Y[d$D == 1], 1)), add = TRUE) # Not unif and not independent
 abline(0, 1)
-coin::independence_test(FF(d$Y[d$D == 0], d$D[d$D == 0]) ~ d$Z[d$D == 0], xtrafo = rank, ytrafo = rank)
-coin::independence_test(FF(d$Y[d$D == 1], d$D[d$D == 1]) ~ d$Z[d$D == 1], xtrafo = rank, ytrafo = rank)
+coin::independence_test(FF(d$Y[d$D == 0], 0) ~ d$Z[d$D == 0], xtrafo = rank, ytrafo = rank)
+coin::independence_test(FF(d$Y[d$D == 1], 1) ~ d$Z[d$D == 1], xtrafo = rank, ytrafo = rank)
 
 ### Y | D = d, d \in {0, 1} evaluated at (Y, D)
 F0o <- ecdf(d$Y[d$D == 0])
