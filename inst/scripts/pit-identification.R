@@ -21,6 +21,9 @@ plot(ecdf(FF(d$Y, d$D))) # Unif and independent
 abline(0, 1)
 coin::independence_test(FF(d$Y, d$D) ~ d$Z, xtrafo = rank, ytrafo = rank)
 
+# plot(ecdf(F0(d$Y)))
+# plot(ecdf(F1(d$Y)), add = TRUE)
+
 ### Y | do(D = d), d \in {0, 1} evaluated at (Y, d)
 plot(ecdf(FF(d$Y[d$D == 0], 0))) # Not unif and not independent
 plot(ecdf(FF(d$Y[d$D == 1], 1)), add = TRUE) # Not unif and not independent
