@@ -1,3 +1,5 @@
+set.seed(1)
+
 # True ECDFs
 n <- 100000
 H <- rnorm(n)
@@ -19,7 +21,8 @@ D <- D0
 D[H > 0] <- D1[H > 0]
 
 # Response
-Y <- H * D - H * (1-D) + rnorm(n)
+# Y <- H * D - H * (1-D) 
+Y <- 2 * H * D - H 
 
 # tmp=F_D(Y), where F_d is the CDF of Y under do(D=d)
 tmp <- F0(Y)
@@ -28,3 +31,4 @@ hist(tmp)
 
 plot(ecdf(D * F1(Y) + (1 - D) * F0(Y)))
 abline(0, 1)
+
