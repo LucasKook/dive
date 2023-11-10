@@ -15,8 +15,9 @@ dgp <- function(n = 1e3, doD = FALSE) {
   Z <- rlogis(n)
   H <- rlogis(n)
   D <- as.numeric((3 * Z + 2 * (1 - doD) * H) / 2 > rlogis(n))
-  # Y <- 4 * D + 4 * H + rnorm(n, sd = 1 + abs(H)/10)
-  Y <- log(1 + exp(10 + 8 * D + H * ( 4 + rlogis(n) / 10)))
+  Y <- 4 * D + 4 * H + rnorm(n, sd = 1 + abs(H)/10)
+  # Y <- log(1 + exp(10 + 8 * D + H * ( 4 + rlogis(n) / 10)))
+  # Y <- 2 * D * H - H
   data.frame(Y = Y, D = factor(D), Z = Z, H = H)
 }
 
@@ -35,9 +36,9 @@ ys <- seq(min(ws$Y), max(ws$Y), length.out = 3e2)
 nd0 <- data.frame(Y = ys, D = factor(0, levels = c(0, 1)))
 nd1 <- data.frame(Y = ys, D = factor(1, levels = c(0, 1)))
 
-n <- 6e2
-nsim <- 10
-xis <- (1:9)/10
+n <- 3e2
+nsim <- 5
+xis <- 0.5
 for (txi in xis) {
   out <- list()
   for(iter in 1:nsim) {
@@ -67,14 +68,15 @@ for (txi in xis) {
 
     ### Diagnostics
     preds <- predict(m, type = "cdf")
-    ggplot(data.frame(pr = preds), aes(x = pr)) +
+    pp <- ggplot(data.frame(pr = preds), aes(x = pr)) +
       stat_ecdf() +
       geom_abline(intercept = 0, slope = 1, linetype = 2) +
       theme_bw() +
       labs(caption = parse(text = paste0("xi==", txi)),
            subtitle = paste0("F(Y, D) indep Z: p-value = ", round(
              dHSIC::dhsic.test(preds, d$Z, method = "gamma")$p.value, 4)))
-    ggsave(paste0("inst/ignore/ecdf-xi-", txi, "-iter-", iter, ".pdf"), height = 5, width = 7)
+    print(pp)
+    ggsave(paste0("inst/ignore/ecdf-xi-", txi, "-iter-", iter, ".pdf"), pp, height = 5, width = 7)
 
     ### Return
     out[[iter]] <- data.frame(
@@ -90,7 +92,7 @@ for (txi in xis) {
     mutate(trt = factor(trt, levels = c("p0", "p1"), labels = c(0, 1)))
   mdat <- pdat |> group_by(ys, trt) |> summarize(cdf = mean(cdf))
 
-  ggplot(pdat, aes(x = ys, y = cdf, color = trt, group = interaction(trt, iter))) +
+  px <- ggplot(pdat, aes(x = ys, y = cdf, color = trt, group = interaction(trt, iter))) +
     geom_line(alpha = 0.3, aes(linetype = "Est."), show.legend = FALSE) +
     geom_line(aes(linetype = "Est.", group = trt), data = mdat, lwd = 0.8) +
     theme_bw() +
@@ -102,6 +104,7 @@ for (txi in xis) {
     labs(x = "Y", y = "CDF", color = "Treatment", linetype = "Type",
          caption = parse(text = paste0("xi==", txi))) +
     theme(legend.position = "top", text = element_text(size = 12.5))
+  print(px)
 
-  ggsave(paste0("inst/ignore/iu-xi-", txi, ".pdf"), height = 5, width = 7)
+  ggsave(paste0("inst/ignore/iu-xi-", txi, ".pdf"), px, height = 5, width = 7)
 }
