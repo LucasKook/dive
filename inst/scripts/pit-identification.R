@@ -4,9 +4,10 @@ library("tram")
 
 dgp <- function(n = 1e3, doD = FALSE) {
   Z <- rlogis(n)
-  H <- rlogis(n)
+  # H <- rlogis(n)
+  H <- rnorm(n)
   D <- as.numeric((3 * Z + (1 - doD) * H) / 2 > rlogis(n))
-  Y <- D + H + rnorm(n, sd = abs(H))
+  Y <- 2 * D * H - H # + rnorm(n, sd = abs(H))
   data.frame(Y = Y, D = D, Z = Z, H = H)
 }
 
@@ -20,6 +21,23 @@ FF <- Vectorize(\(y, d) d * F1(y) + (1 - d) * F0(y))
 plot(ecdf(FF(d$Y, d$D))) # Unif and independent
 abline(0, 1)
 coin::independence_test(FF(d$Y, d$D) ~ d$Z, xtrafo = rank, ytrafo = rank)
+
+### Chernozhukov quantile version (it's not the interventional CDF?)
+QQ <- Vectorize(\(t, dd) dd * quantile(do$Y[do$D == 1], probs = t) +
+                  (1-dd) * quantile(do$Y[do$D == 0], probs = t))
+outs <- sapply(probs <- (0:100)/100, \(x) {
+  mean(d$Y <= QQ(x, c(0, 1))[d$D + 1])
+})
+plot(probs, outs)
+abline(0, 1)
+
+QQtheory <- Vectorize(\(t, dd) dd * qnorm(t) + (1 - dd) * qnorm(t))
+outs <- sapply(probs <- (0:100)/100, \(x) {
+  mean(d$Y <= QQtheory(x, c(0, 1))[d$D + 1])
+})
+plot(probs, outs)
+abline(0, 1)
+
 
 # plot(ecdf(F0(d$Y)))
 # plot(ecdf(F1(d$Y)), add = TRUE)
