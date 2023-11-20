@@ -27,3 +27,7 @@ outs <- sapply(probs, \(x) {
 plot(probs, outs)
 abline(0, 1)
 
+### Potential outcomes
+Y0 <- -H
+Y1 <- H
+plot(rank(Y0)/n, rank(Y1)/n)
