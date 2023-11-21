@@ -37,7 +37,7 @@ library("tidyverse")
 library("patchwork")
 theme_set(theme_bw() + theme(text = element_text(size = 13.5)))
 
-pd <- data.frame(Y0 = Y0, Y1 = Y1, H = H)[sample.int(n, 100), ]
+pd <- data.frame(Y0 = Y0, Y1 = Y1, H = H, D = D, Y = Y)[sample.int(n, 100), ]
 
 pri <- ggplot(pd, aes(x = Y0, y = Y1)) +
   geom_point() +
@@ -53,8 +53,15 @@ pcmrs <- ggplot(pd |> pivot_longer(Y0:Y1), aes(x = plogis(H), y = pnorm(value), 
   labs(x = "q(H)", color = element_blank(), y = "Rank") +
   scale_color_discrete(labels = c("Y1" = "Y(1)", "Y0" = "Y(0)"))
 
+punif <- ggplot(pd, aes(x = D * pnorm(Y) + (1 - D) * pnorm(Y))) +
+  stat_ecdf() +
+  geom_abline(intercept = 0, slope = 1) +
+  labs(y = "ECDF", x = "Interventional PIT")
+
 (pri + labs(tag = "A", subtitle = "Rank invariance")) +
   (prs + labs(tag = "B", subtitle = "Rank similarity")) +
-  (pcmrs + labs(tag = "c", subtitle = "Conditional mean rank similarity"))
+  (pcmrs + labs(tag = "C", subtitle = "Conditional mean rank similarity")) +
+  (punif + labs(tag = "D", subtitle = "Uniformity condition")) +
+  plot_layout(nrow = 1)
 
-ggsave("inst/figures/rank-assumptions.pdf", width = 9, height = 3.5)
+ggsave("inst/figures/rank-assumptions.pdf", width = 12, height = 3.5)
