@@ -1,18 +1,29 @@
 ### Visualize rank assumptions in examples
 ### LK 2023
 
-set.seed(42)
+set.seed(2410)
 library("tidyverse")
 library("patchwork")
 theme_set(theme_bw() + theme(text = element_text(size = 13.5)))
 
 # DGP ---------------------------------------------------------------------
 
-dgp_np <- function(n, g1 = \(h, ny) h, g0 = \(h, ny) -h, intervene = FALSE) {
+setting <- c("np", "sqh")[2]
+if (setting == "np") {
+  tg0 <- \(h, ny) -h
+  tg1 <- \(h, ny) h
+  tqH <- \(h) plogis(h)
+} else if (setting == "sqh") {
+  tg0 <- \(h, ny) qlogis(pnorm(h + ny / 3))
+  tg1 <- \(h, ny) qlogis(pnorm(h + 1.5 * ny / 3 - 1.5))
+  tqH <- \(h) as.numeric(plogis(h) > 0.5)
+}
+
+dgp_np <- function(n, g1 = tg1, g0 = tg0, fqH = tqH, intervene = FALSE) {
   ### Observational data
   H <- rnorm(n)
   NY <- rnorm(n)
-  qH <- if (intervene) 0.5 else plogis(H)
+  qH <- if (intervene) 0.5 else fqH(H)
   D <- rbinom(n, 1, prob = qH)
   Y0 <- g0(H, NY)
   Y1 <- g1(H, NY)
@@ -46,7 +57,7 @@ prs <- ggplot(pd |> pivot_longer(R0:R1), aes(x = H, y = value, color = name)) +
 
 ### Plot conditional mean rank similarity
 pcmrs <- ggplot(pd |> pivot_longer(R0:R1), aes(x = qH, y = value, color = name)) +
-  geom_point() +
+  {if (length(unique(pd$qH)) > 2) geom_point() else ggbeeswarm::geom_quasirandom()} +
   labs(x = "q(H)", color = element_blank(), y = "Rank") +
   scale_color_discrete(labels = c("Y1" = "Y(1)", "Y0" = "Y(0)"))
 
@@ -62,4 +73,5 @@ punif <- ggplot(pd, aes(x = W)) +
   (punif + labs(tag = "D", subtitle = "Uniformity condition")) +
   plot_layout(nrow = 1, guides = "collect")
 
-ggsave("inst/figures/rank-assumptions.pdf", width = 12, height = 3.5)
+ggsave(paste0("inst/figures/rank-assumptions", setting, ".pdf"),
+       width = 12, height = 3.5)
