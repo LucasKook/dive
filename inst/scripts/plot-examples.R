@@ -8,15 +8,19 @@ theme_set(theme_bw() + theme(text = element_text(size = 13.5)))
 
 # DGP ---------------------------------------------------------------------
 
-setting <- c("np", "sqh")[2]
+setting <- c("np", "sqh", "cmrs-holds")[1]
 if (setting == "np") {
-  tg0 <- \(h, ny) -h
-  tg1 <- \(h, ny) h
+  tg0 <- \(h, ny) h
+  tg1 <- \(h, ny) -h
   tqH <- \(h) plogis(h)
 } else if (setting == "sqh") {
   tg0 <- \(h, ny) qlogis(pnorm(h + ny / 3))
   tg1 <- \(h, ny) qlogis(pnorm(h + 1.5 * ny / 3 - 1.5))
   tqH <- \(h) as.numeric(plogis(h) > 0.5)
+} else if (setting == "cmrs-holds") {
+  tg0 <- \(h, ny) h^2
+  tg1 <- \(h, ny) -h^2
+  tqH <- \(h) as.numeric(h > 0)
 }
 
 dgp_np <- function(n, g1 = tg1, g0 = tg0, fqH = tqH, intervene = FALSE) {
