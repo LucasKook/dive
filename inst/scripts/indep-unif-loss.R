@@ -37,8 +37,8 @@ ys <- seq(min(ws$Y), max(ws$Y), length.out = 3e2)
 nd0 <- data.frame(Y = ys, D = factor(0, levels = c(0, 1)))
 nd1 <- data.frame(Y = ys, D = factor(1, levels = c(0, 1)))
 
-n <- 3e3
-nsim <- 1
+n <- 1e3
+nsim <- 3
 out <- list()
 for(iter in 1:nsim) {
 
@@ -47,7 +47,7 @@ for(iter in 1:nsim) {
   ### Generate data
   d <- dgp(n)
 
-  topt <- trafo_control(order_bsp = 30L, support = range(ws$Y),
+  topt <- trafo_control(order_bsp = 33L, support = range(ws$Y),
                         response_type = "continuous")
   ### Optional warm start, use with care
   # m0 <- ColrNN(Y | D ~ 1, data = d, optimizer = optimizer_adam(0.1),
@@ -71,12 +71,11 @@ for(iter in 1:nsim) {
     stat_ecdf() +
     geom_abline(intercept = 0, slope = 1, linetype = 2) +
     theme_bw() +
-    labs(caption = parse(text = paste0("xi==", txi)),
-         subtitle = paste0("F(Y, D) indep Z: p-value = ", round(
+    labs(subtitle = paste0("F(Y, D) indep Z: p-value = ", round(
            dHSIC::dhsic.test(preds, d$Z, method = "gamma")$p.value, 4)))
   print(pp)
   if (save)
-    ggsave(paste0("inst/ignore/ecdf-xi-", txi, "-iter-", iter, ".pdf"), pp,
+    ggsave(paste0("inst/ignore/ecdf-iter-", iter, ".pdf"), pp,
            height = 5, width = 7)
 
   ### Return
@@ -93,19 +92,18 @@ pdat <- bind_rows(out) |>
   mutate(trt = factor(trt, levels = c("p0", "p1"), labels = c(0, 1)))
 mdat <- pdat |> group_by(ys, trt) |> summarize(cdf = mean(cdf))
 
-px <- ggplot(pdat, aes(x = ys, y = cdf, color = trt, group = interaction(trt, iter))) +
-  geom_line(alpha = 0.3, aes(linetype = "Est."), show.legend = FALSE) +
-  geom_line(aes(linetype = "Est.", group = trt), data = mdat, lwd = 0.8) +
+px <- ggplot(pdat, aes(x = ys, y = cdf, linetype = trt, group = interaction(trt, iter))) +
+  geom_line(alpha = 0.5, aes(color = "Est."), show.legend = FALSE) +
+  geom_line(aes(color = "Est.", group = trt), data = mdat, lwd = 1) +
   theme_bw() +
-  stat_ecdf(aes(x = Y, color = D, linetype = "Interv."), data = dint,
+  stat_ecdf(aes(x = Y, linetype = D, color = "Interv."), data = dint,
             inherit.aes = FALSE, lwd = 0.8, geom = "line") +
-  stat_ecdf(aes(x = Y, color = D, linetype = "Observ."), data = dobs,
+  stat_ecdf(aes(x = Y, linetype = D, color = "Observ."), data = dobs,
             inherit.aes = FALSE, lwd = 0.8, geom = "line") +
-  scale_color_manual(values = c("0" = "darkblue", "1" = "darkred")) +
-  labs(x = "Y", y = "CDF", color = "Treatment", linetype = "Type",
-       caption = parse(text = paste0("xi==", txi))) +
+  # scale_color_manual(values = c("0" = "darkblue", "1" = "darkred")) +
+  labs(x = "Y", y = "CDF", color = "Type", linetype = "Treatment") +
   theme(legend.position = "top", text = element_text(size = 12.5))
 print(px)
 
 if (save)
-  ggsave(paste0("inst/ignore/iu-xi-", txi, ".pdf"), px, height = 5, width = 7)
+  ggsave(paste0("inst/ignore/sim.pdf"), px, height = 5, width = 7)
