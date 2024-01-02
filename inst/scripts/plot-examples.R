@@ -13,13 +13,13 @@ if (setting == "cmrs-violated") {
   tg0 <- \(h, ny) h
   tg1 <- \(h, ny) -h
   tqH <- \(h) plogis(h)
-} else if (setting == "rsim-violated") {
+} else if (setting == "rinv-violated") {
   tg0 <- \(h, ny) h + ny / 3
   tg1 <- \(h, ny) h + 1.5 * ny / 3 - 1.5
   # tg0 <- \(h, ny) qlogis(pnorm(h + ny / 3))
   # tg1 <- \(h, ny) qlogis(pnorm(h + 1.5 * ny / 3 - 1.5))
   tqH <- \(h) 0.2 + 0.6 * as.numeric(h > 0)
-} else if (setting == "rinv-violated") {
+} else if (setting == "rsim-violated") {
   tg0 <- \(h, ny) h^2
   tg1 <- \(h, ny) -h^2
   tqH <- \(h) 0.2 + 0.6 * as.numeric(h > 0)
