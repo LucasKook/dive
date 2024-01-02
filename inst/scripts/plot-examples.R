@@ -8,18 +8,18 @@ theme_set(theme_bw() + theme(text = element_text(size = 13.5)))
 
 # DGP ---------------------------------------------------------------------
 
-setting <- c("np", "sqh", "cmrs-holds")[2]
-if (setting == "np") {
+setting <- c("rinv-violated", "rsim-violated", "cmrs-violated")[3]
+if (setting == "cmrs-violated") {
   tg0 <- \(h, ny) h
   tg1 <- \(h, ny) -h
   tqH <- \(h) plogis(h)
-} else if (setting == "sqh") {
+} else if (setting == "rsim-violated") {
   tg0 <- \(h, ny) h + ny / 3
   tg1 <- \(h, ny) h + 1.5 * ny / 3 - 1.5
   # tg0 <- \(h, ny) qlogis(pnorm(h + ny / 3))
   # tg1 <- \(h, ny) qlogis(pnorm(h + 1.5 * ny / 3 - 1.5))
   tqH <- \(h) 0.2 + 0.6 * as.numeric(h > 0)
-} else if (setting == "cmrs-holds") {
+} else if (setting == "rinv-violated") {
   tg0 <- \(h, ny) h^2
   tg1 <- \(h, ny) -h^2
   tqH <- \(h) 0.2 + 0.6 * as.numeric(h > 0)
@@ -54,18 +54,19 @@ pd$W <- pd$D * pd$R1 + (1 - pd$D) * pd$R0
 ### Plot rank invariance
 pri <- ggplot(pd, aes(x = Y0, y = Y1)) +
   geom_point() +
-  labs(x = "Y(0)", y = "Y(1)")
+  labs(x = parse(text = "g[0](H,N[Y])"), y = parse(text = "g[1](H,N[Y])"))
 
 ### Plot rank similarity
 prs <- ggplot(pd |> pivot_longer(R0:R1), aes(x = H, y = value, color = name)) +
   geom_point(show.legend = FALSE) +
-  labs(x = "H", y = "Rank")
+  labs(x = "H", y = parse(text = "Rank:~F[d](g[d](H,N[Y]))")) +
+  scale_color_discrete(labels = c("R1" = "1", "R0" = "0"))
 
 ### Plot conditional mean rank similarity
 pcmrs <- ggplot(pd |> pivot_longer(R0:R1), aes(x = qH, y = value, color = name)) +
   {if (length(unique(pd$qH)) > 2) geom_point() else ggbeeswarm::geom_quasirandom()} +
-  labs(x = "q(H)", color = element_blank(), y = "Rank") +
-  scale_color_discrete(labels = c("Y1" = "Y(1)", "Y0" = "Y(0)"))
+  labs(x = "q(H)", color = "", y = parse(text = "Rank:~F[d](g[d](H,N[Y]))")) +
+  scale_color_discrete(labels = c("R1" = parse(text = "d==1"), "R0" = parse(text = "d==0")))
 
 ### Plot uniformity condition
 punif <- ggplot(pd, aes(x = W)) +
