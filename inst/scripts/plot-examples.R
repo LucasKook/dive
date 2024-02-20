@@ -69,7 +69,7 @@ prs <- ggplot(pd |> pivot_longer(R0:R1), aes(x = H, y = value, color = name)) +
 ### Plot conditional mean rank similarity
 pcmrs <- ggplot(pd |> pivot_longer(R0:R1), aes(x = qH, y = value, color = name)) +
   {if (length(unique(pd$qH)) > 2) geom_point() else ggbeeswarm::geom_quasirandom()} +
-  labs(x = "q(H)", color = "", y = parse(text = "Rank:~{{F[d]*'*'}}(g[d](H,N[Y]))")) +
+  labs(x = parse(text = "pi(H)"), color = "", y = parse(text = "Rank:~{{F[d]*'*'}}(g[d](H,N[Y]))")) +
   scale_color_discrete(labels = c("R1" = parse(text = "d==1"), "R0" = parse(text = "d==0")))
 
 ### Plot uniformity condition
