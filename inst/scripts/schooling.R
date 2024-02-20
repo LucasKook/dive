@@ -62,25 +62,3 @@ p2 <- ggplot(nd |> pivot_longer(TRAM:DIVE, names_to = "model", values_to = "cdf"
 ggpubr::ggarrange(p2, p1, ncol = 1, align = "hv")
 
 ggsave("inst/figures/case-study.pdf", height = 6, width = 7)
-
-# ggplot(pdat, aes(x = model, y = rank, color = nearcollege)) +
-#   geom_boxplot(position = position_dodge(0.8)) +
-#   ggbeeswarm::geom_quasirandom(dodge.width = 0.8) +
-#   theme_bw()
-#
-# ggplot(data.frame(pr = preds), aes(x = pr)) +
-#   stat_ecdf() +
-#   geom_abline(intercept = 0, slope = 1, linetype = 2) +
-#   theme_bw() +
-#   labs(subtitle = paste0("F(Y, D) indep Z: p-value = ", round(
-#     dHSIC::dhsic.test(
-#       preds, as.numeric(dat$nearcollege), method = "gamma")$p.value, 4)))
-#
-# preds <- predict(m0, which = "distribution", type = "distribution")
-# ggplot(data.frame(pr = preds), aes(x = pr)) +
-#   stat_ecdf() +
-#   geom_abline(intercept = 0, slope = 1, linetype = 2) +
-#   theme_bw() +
-#   labs(subtitle = paste0("F(Y, D) indep Z: p-value = ", round(
-#     dHSIC::dhsic.test(
-#       preds, as.numeric(dat$nearcollege), method = "gamma")$p.value, 4)))
