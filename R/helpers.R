@@ -32,6 +32,15 @@ ind_obj <- \(b, Y, X, E, tstat = "quadratic", trafo = identity, ytrafo = trafo) 
   trafo(statistic(independence_test(R ~ E, teststat = tstat, ytrafo = ytrafo)))
 }
 
+ind_unif_obj <- \(b, Y, X, E, tstat = "quadratic", trafo = identity,
+                  ytrafo = trafo, lambda = 1) {
+  p0 <- (1 - plogis(X %*% b))
+  R <- randomized_pit(p0, Y)
+  cmv <- mean((R - ecdf(R)(R))^2)
+  cor <- mean(fitted(lm(R ~ E))^2)
+  max(cor, lambda * cmv)
+}
+
 OR <- \(p1, p2, cf = identity) {
   unname(cf((p1 * (1 - p2)) / ((1 - p1) * p2)))
 }
@@ -64,9 +73,9 @@ ranger_marginal_predictions <- function(fml, data, trt = "D", trafo = mean) {
   cbind(p1 = trafo(rfp1), p0 = trafo(rfp0))
 }
 
-indep_iv <- function(formula, instrument, data, method = c("COR", "IND"), ytrafo = trafo) {
+indep_iv <- function(formula, instrument, data, method = c("COR", "IND", "DIVE"), ytrafo = trafo) {
   method <- match.arg(method)
-  obj <- switch(method, "COR" = cor_obj, "IND" = ind_obj)
+  obj <- switch(method, "COR" = cor_obj, "IND" = ind_obj, "DIVE" = ind_unif_obj)
   ### Set up model matrices
   Y <- model.response(model.frame(formula, data))
   X <- model.matrix(formula, data)
