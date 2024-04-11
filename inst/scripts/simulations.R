@@ -2,6 +2,9 @@
 ### LK 2024
 
 set.seed(12)
+save <- TRUE
+odir <- "inst/results/simulations"
+fname <- "sim-res"
 
 # DEPs --------------------------------------------------------------------
 
@@ -60,7 +63,18 @@ res <- lapply(ns, \(tn) {
   }) |> bind_rows()
 }) |> bind_rows()
 
+# Vis ---------------------------------------------------------------------
+
 ggplot(res |> pivot_longer(CmV:KS, names_to = "metric", values_to = "value"),
        aes(x = method, y = value)) +
   facet_wrap(~ metric, scales = "free") +
   geom_boxplot()
+
+# Save --------------------------------------------------------------------
+
+if (save) {
+  if (!dir.exists(odir))
+    dir.create(odir, recursive = TRUE)
+  write_csv(res, file.path(odir, paste0(fname, ".csv")))
+  ggsave(file.path(odir, paste0(fname, ".pdf")))
+}
