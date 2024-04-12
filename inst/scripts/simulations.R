@@ -27,11 +27,11 @@ dgp <- function(n = 1e2) {
 # Params ------------------------------------------------------------------
 
 nep <- 1e4
-ords <- 30
-lrs <- 0.11
-rep <- 2
-ns <- 1e2
-lams <- 1
+rep <- 20
+ords <- c(10, 30, 50)
+lrs <- c(0.01, 0.05, 0.1)
+ns <- c(1e2, 3e2, 7e2, 1e3)
+lams <- c(0, 0.5, 1, 3, 10)
 
 # Run ---------------------------------------------------------------------
 
@@ -56,7 +56,7 @@ res <- lapply(ns, \(tn) {
             group_by(method) |>
             summarize(CmV = mean((ORACLE - cdf)^2),
                       KS = max(abs(ORACLE - cdf))) |>
-            mutate(n = tn, lam = tlam)
+            mutate(n = tn, lam = tlam, order = tord, lr = tlr)
         }) |> bind_rows()
       }) |> bind_rows()
     }) |> bind_rows()
@@ -66,9 +66,10 @@ res <- lapply(ns, \(tn) {
 # Vis ---------------------------------------------------------------------
 
 ggplot(res |> pivot_longer(CmV:KS, names_to = "metric", values_to = "value"),
-       aes(x = method, y = value)) +
-  facet_wrap(~ metric, scales = "free") +
-  geom_boxplot()
+       aes(x = ordered(n), y = value, fill = method)) +
+  facet_grid(lam ~ metric, scales = "free", labeller = label_both) +
+  geom_boxplot(outlier.shape = NA) +
+  theme_bw()
 
 # Save --------------------------------------------------------------------
 
