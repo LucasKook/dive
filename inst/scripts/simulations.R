@@ -2,9 +2,15 @@
 ### LK 2024
 
 set.seed(12)
+
+### CLI args
+args <- commandArgs(trailingOnly = TRUE)
+scenario <- if (length(args) != 0) args[1] else 1
+
+### File names
 save <- TRUE
-odir <- "inst/results/simulations"
-fname <- "sim-res"
+odir <- file.path("inst/results/simulations", Sys.Date())
+fname <- paste0("sim-res-", scenario)
 
 # DEPs --------------------------------------------------------------------
 
@@ -15,14 +21,44 @@ library("dare")
 
 # Settings ----------------------------------------------------------------
 
-dgp <- function(n = 1e2) {
-  Z <- rlogis(n)
-  H <- rnorm(n)
-  D <- as.numeric(3 * Z + 0.5 * H > rlogis(n))
-  Y <- 4 * D + 4 * H
-  oracle <- Vectorize(\(y, d) pnorm(y, mean = 4 * d, sd = 2))
-  data.frame(Y = Y, H = H, D = D, Z = Z, ORACLE = oracle(Y, D))
-}
+dgp <- switch(
+  scenario,
+  "1" = function(n = 1e2, do = FALSE) {
+    Z <- rlogis(n)
+    H <- rlogis(n)
+    D <- as.numeric(3 * Z + (1 - do) * 4 * H > rlogis(n))
+    Y <- 4 * D + 6 * H
+    data.frame(Y = Y, H = H, D = D, Z = Z)
+  },
+  "2" = function(n = 1e2, do = FALSE) {
+    Z <- rlogis(n)
+    H <- rlogis(n)
+    D <- as.numeric(3 * Z + (1 - do) * 4 * H > rlogis(n))
+    Y <- 4 * D + 6 * H + 2 * H * rlogis(n)
+    data.frame(Y = Y, H = H, D = D, Z = Z)
+  },
+  "3" = function(n = 1e2, do = FALSE) {
+    Z <- rlogis(n)
+    H <- rlogis(n)
+    D <- as.numeric(3 * Z + (1 - do) * 4 * H > rlogis(n))
+    Y <- log(1 + exp(18 + 8 * D + 6 * H))
+    data.frame(Y = Y, H = H, D = D, Z = Z)
+  },
+  "4" = function(n = 1e2, do = FALSE) {
+    Z <- rlogis(n)
+    H <- rlogis(n)
+    D <- as.numeric(3 * Z + (1 - do) * 4 * H > rlogis(n))
+    Y <- - 4 * (1 + D) * H
+    data.frame(Y = Y, H = H, D = D, Z = Z)
+  }
+)
+
+# ORACLE ------------------------------------------------------------------
+
+dint <- dgp(1e6, do = TRUE)
+F0 <- ecdf(dint$Y[dint$D == 0])
+F1 <- ecdf(dint$Y[dint$D == 1])
+ORACLE <- Vectorize(\(y, d) d * F1(y) + (1 - d) * F0(y))
 
 # Params ------------------------------------------------------------------
 
@@ -67,7 +103,7 @@ res <- lapply(ns, \(tn) {
 
 ggplot(res |> pivot_longer(CmV:KS, names_to = "metric", values_to = "value"),
        aes(x = ordered(n), y = value, fill = method)) +
-  facet_grid(lam ~ metric, scales = "free", labeller = label_both) +
+  facet_grid(metric ~ lam + lr, scales = "free", labeller = label_both) +
   geom_boxplot(outlier.shape = NA) +
   theme_bw()
 
