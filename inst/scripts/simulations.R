@@ -58,7 +58,7 @@ dgp <- switch(
 dint <- dgp(1e6, do = TRUE)
 F0 <- ecdf(dint$Y[dint$D == 0])
 F1 <- ecdf(dint$Y[dint$D == 1])
-ORACLE <- Vectorize(\(y, d) d * F1(y) + (1 - d) * F0(y))
+oracle <- Vectorize(\(y, d) d * F1(y) + (1 - d) * F0(y))
 
 # Params ------------------------------------------------------------------
 
@@ -77,6 +77,7 @@ res <- lapply(ns, \(tn) {
       lapply(lams, \(tlam) {
         lapply(seq_len(rep), \(iter) {
           dat <- dgp(tn)
+          dat$ORACLE <- oracle(dat$Y, dat$D)
           m0 <- BoxCox(Y | D ~ 1, data = dat, support = range(dat$Y),
                        order = tord)
           m <- BoxCoxDA(Y | D ~ 1, data = dat, anchor = ~ Z, loss = "indep",
