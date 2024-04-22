@@ -76,24 +76,46 @@ res <- lapply(ns, \(tn) {
     lapply(lrs, \(tlr) {
       lapply(lams, \(tlam) {
         lapply(seq_len(rep), \(iter) {
+          ### Generate train/test data
           dat <- dgp(tn)
+          test <- dgp(tn)
+
+          ### Compute oracle interventional CDF
           dat$ORACLE <- oracle(dat$Y, dat$D)
-          m0 <- BoxCox(Y | D ~ 1, data = dat, support = range(dat$Y),
+          test$ORACLE <- oracle(test$Y, test$D)
+
+          ### Fit vanilla nonparametric CDF
+          m0 <- BoxCox(Y | D ~ 1, data = dat,
+                       support = supp <- range(dat$Y, test$Y),
                        order = tord)
+
+          ### Fit DIVE
           m <- BoxCoxDA(Y | D ~ 1, data = dat, anchor = ~ Z, loss = "indep",
-                        optimizer = optimizer_adam(tlr), order = tord,
-                        xi = tlam)
+                        optimizer = optimizer_adam(tlr), xi = tlam,
+                        trafo_options = trafo_control(
+                          order_bsp = tord, support = supp))
           fit(m, epochs = nep)
+
+          ### Evaluate in-sample
           dat$TRAM <- c(predict(m0, which = "distribution",
                                 type = "distribution"))
           dat$DIVE <- c(predict(m, type = "cdf"))
 
-          dat |> pivot_longer(TRAM:DIVE, names_to = "method",
+          ### Evaluate out-of-sample
+          test$TRAM <- c(predict(m0, which = "distribution",
+                                type = "distribution", newdata = test))
+          test$DIVE <- c(predict(m, type = "cdf", newdata = test))
+
+          out <- bind_rows(dat |> mutate(set = "train"),
+                           test |> mutate(set = "test"))
+
+          out |> pivot_longer(TRAM:DIVE, names_to = "method",
                               values_to = "cdf") |>
-            group_by(method) |>
+            group_by(method, set) |>
             summarize(CmV = mean((ORACLE - cdf)^2),
                       KS = max(abs(ORACLE - cdf))) |>
-            mutate(n = tn, lam = tlam, order = tord, lr = tlr)
+            mutate(n = tn, lam = tlam, order = tord, lr = tlr, iter = iter)
+
         }) |> bind_rows()
       }) |> bind_rows()
     }) |> bind_rows()
@@ -102,10 +124,14 @@ res <- lapply(ns, \(tn) {
 
 # Vis ---------------------------------------------------------------------
 
-ggplot(res |> pivot_longer(CmV:KS, names_to = "metric", values_to = "value"),
+tuned <- res |>
+  pivot_wider(names_from = set, values_from = CmV:KS) |>
+  group_by(method, n, lam, order, lr, iter) |>
+  slice(which.min(CmV_train))
+
+ggplot(tuned |> pivot_longer(c(CmV_test, KS_test), names_to = "metric", values_to = "value"),
        aes(x = ordered(n), y = value, fill = method)) +
-  facet_grid(metric ~ lam + lr, scales = "free", labeller = label_both) +
-  geom_boxplot(outlier.shape = NA) +
+  geom_boxplot() +
   theme_bw()
 
 # Save --------------------------------------------------------------------
