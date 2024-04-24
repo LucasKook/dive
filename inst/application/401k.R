@@ -28,11 +28,11 @@ fit_adaptive <- function(
   for (iter in seq_len(max_iter)) {
     mod <- do.call("ColrDA", c(args, list(tf_seed = iter)))
     tmp <- get_weights(mod$model)
-    tmp[[1]][] <- qlogis(seq(0.0001, 0.9999, length.out = length(tmp[[1]])))
+    tmp[[1]][] <- qlogis(seq(0.01, 0.99, length.out = length(tmp[[1]])))
     tmp[[2]][] <- - seq_len(length(tmp[[2]])) + 0.5
     tmp[[3]][] <- 4
     set_weights(mod$model, tmp)
-    # plot(args$data$Y, predict(mod, type = "cdf"), col = args$data$D + 1)
+    plot(args$data$y, predict(mod, type = "cdf"), col = args$data$d + 1)
     fit(mod, epochs = epochs, ...)
     iPIT <- predict(mod, type = "cdf")
     unif <- ks.test(iPIT, "punif")$p.value
