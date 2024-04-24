@@ -20,13 +20,47 @@ dat <- data.frame(
   z = d401k$e401
 )[sample.int(nrow(d401k), 1e3), ]
 
+# FUNs --------------------------------------------------------------------
+
+fit_adaptive <- function(
+    args, epochs, max_iter = 5, stepsize = 2, alpha = 0.1, ...
+) {
+  for (iter in seq_len(max_iter)) {
+    mod <- do.call("ColrDA", c(args, list(tf_seed = iter)))
+    tmp <- get_weights(mod$model)
+    tmp[[1]][] <- qlogis(seq(0.0001, 0.9999, length.out = length(tmp[[1]])))
+    tmp[[2]][] <- - seq_len(length(tmp[[2]])) + 0.5
+    tmp[[3]][] <- 4
+    set_weights(mod$model, tmp)
+    # plot(args$data$Y, predict(mod, type = "cdf"), col = args$data$D + 1)
+    fit(mod, epochs = epochs, ...)
+    iPIT <- predict(mod, type = "cdf")
+    unif <- ks.test(iPIT, "punif")$p.value
+    indep <- dHSIC::dhsic.test(iPIT, args$data$z, method = "gamma")$p.value
+    mod$xi <- args$xi
+    mod$p.unif <- unif
+    mod$p.indep <- indep
+    if (min(unif, indep) > alpha)
+      return(mod)
+    else
+      args$xi <- ifelse(indep < unif, args$xi * (1 + stepsize),
+                        args$xi / (1 + stepsize))
+  }
+  message("No solution for which uniformity and independence is not
+          rejected at level alpha.")
+  return(do.call("ColrDA", args))
+}
+
 # Run ---------------------------------------------------------------------
 
 ### Fit
 m0 <- BoxCox(y | d ~ 1, data = dat, support = range(dat$y), order = 10)
-m <- BoxCoxDA(y | d ~ 1, data = dat, anchor = ~ z, loss = "indep",
-              optimizer = optimizer_adam(0.1), order = 10, xi = 0.1)
-fit(m, epochs = 1e4)
+
+args <- list(formula = y | d ~ 1, data = dat, anchor = ~ z, loss = "indep",
+             optimizer = optimizer_adam(0.1), order = 10, xi = 0.1)
+cb <- list(callback_reduce_lr_on_plateau("loss", patience = 2e2, factor = 0.9),
+           callback_early_stopping("loss", patience = 4e2))
+m <- fit_adaptive(args, 1e4, callbacks = cb)
 
 ### Predict
 dat$TRAM <- predict(m0, which = "distribution", type = "distribution")
