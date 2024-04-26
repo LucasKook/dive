@@ -8,14 +8,14 @@ theme_set(theme_bw() + theme(text = element_text(size = 13.5)))
 
 # DGP ---------------------------------------------------------------------
 
-setting <- c("rinv-violated", "rsim-violated", "cmrs-violated", "intro")[4]
+setting <- c("rinv-violated", "rsim-violated", "cmrs-violated", "intro")[1]
 if (setting == "cmrs-violated") {
   tg0 <- \(h, ny) h
   tg1 <- \(h, ny) -h
   tqH <- \(h) plogis(h)
 } else if (setting == "rinv-violated") {
-  tg0 <- \(h, ny) h + ny / 3
-  tg1 <- \(h, ny) h + 1.5 * ny / 3 - 1.5
+  tg0 <- \(h, ny) h - ny
+  tg1 <- \(h, ny) 1 + h + ny
   # tg0 <- \(h, ny) qlogis(pnorm(h + ny / 3))
   # tg1 <- \(h, ny) qlogis(pnorm(h + 1.5 * ny / 3 - 1.5))
   tqH <- \(h) 0.2 + 0.6 * as.numeric(h > 0)
@@ -56,9 +56,10 @@ pd$R1 <- F1(pd$Y1)
 pd$W <- pd$D * pd$R1 + (1 - pd$D) * pd$R0
 
 ### Plot rank invariance
-pri <- ggplot(pd, aes(x = Y0, y = Y1)) +
+pri <- ggplot(pd, aes(x = R0, y = R1)) +
   geom_point() +
-  labs(x = parse(text = "g[0](H,N[Y])"), y = parse(text = "g[1](H,N[Y])"))
+  labs(x = parse(text = "{F[0]*'*'}(g[0](H,N[Y]))"),
+       y = parse(text = "{F[1]*'*'}(g[1](H,N[Y]))"))
 
 ### Plot rank similarity
 prs <- ggplot(pd |> pivot_longer(R0:R1), aes(x = H, y = value, color = name)) +
