@@ -69,7 +69,8 @@ prs <- ggplot(pd |> pivot_longer(R0:R1), aes(x = H, y = value, color = name)) +
 ### Plot conditional mean rank similarity
 pcmrs <- ggplot(pd |> pivot_longer(R0:R1), aes(x = qH, y = value, color = name)) +
   {if (length(unique(pd$qH)) > 2) geom_point() else ggbeeswarm::geom_quasirandom()} +
-  labs(x = parse(text = "pi(H)"), color = "", y = parse(text = "Rank:~{{F[d]*'*'}}(g[d](H,N[Y]))")) +
+  labs(x = parse(text = "pi(H)"), color = "", y = parse(
+    text = "Rank:~{{F[d]*'*'}}(g[d](H,N[Y]))")) +
   scale_color_discrete(labels = c("R1" = parse(text = "d==1"), "R0" = parse(text = "d==0")))
 
 ### Plot uniformity condition
@@ -102,7 +103,7 @@ p1 <- ggplot(pdat, aes(x = Y, color = factor(D))) +
   labs(x = "Response", y = "CDF", color = "Treatment", tag = "A") +
   theme(legend.position = "top")
 
-# qte <- \(p, d) quantile(d$Y1, probs = p) - quantile(d$Y0, probs = p)
+qte <- \(p, d) quantile(d$Y[d$D == 1], probs = p) - quantile(d$Y[d$D == 0], probs = p)
 # rte <- \(y, d) log(ecdf(d$Y1)(y)) - log(ecdf(d$Y0)(y))
 # rpd <- \(p, d) ecdf(d$Y1)(quantile(d$Y0, probs = p)) - p
 dte <- \(y, d) ecdf(d$Y[d$D == 1])(y) - ecdf(d$Y[d$D == 0])(y)
@@ -114,7 +115,7 @@ tte <- \(y, qZ = \(p) log(p) - log(1 - p), d) {
 dok <- \(y, d) quantile(d$Y[d$D == 0], probs = ecdf(d$Y[d$D == 1])(y)) - y
 ys <- seq(-3 + sqrt(.Machine$double.eps), 3 - sqrt(.Machine$double.eps),
           length.out = 1e3)
-FUNs <- c("Distributional" = "dte", "Logit-transformed" = "tte", "Doksum-type" = "dok")
+FUNs <- c("DCE" = "dte", "LogitCE" = "tte", "DOK" = "dok")
 make_plot_data <- \(td) {
   out <- bind_cols(lapply(FUNs, \(x) {
     do.call(x, list(y = ys, d = td))
@@ -131,9 +132,22 @@ p2 <- ggplot(pdat2, aes(x = y, y = value, color = setting)) +
   geom_line() +
   facet_wrap(~ name, scales = "free") +
   scale_color_manual(values = colorspace::diverge_hcl(2)) +
-  labs(x = "Response", y = "Treatment effect", color = "Data", tag = "B") +
+  labs(x = "Response", y = "Causal effect", color = "Data", tag = "B") +
   theme(legend.position = "top")
 
-ggpubr::ggarrange(p1, p2, widths = c(2, 3))
+pdd <- data.frame(tau = seq(1e-5, 1 - 1e-5, length.out = 1e3))
+pdd$Observational <- qte(pdd$tau, do)
+pdd$Interventional <- qte(pdd$tau, di)
+pddl <- pivot_longer(pdd, Observational:Interventional, names_to = "setting",
+                     values_to = "QCE")
+pddl$name <- "QCE"
 
-ggsave("inst/figures/intro.pdf", height = 3, width = 9)
+p3 <- ggplot(pddl, aes(x = tau, y = QCE, color = setting)) +
+  geom_line(show.legend = FALSE) +
+  facet_wrap(~ name, scales = "free") +
+  scale_color_manual(values = colorspace::diverge_hcl(2)) +
+  labs(x = expression(tau), y = element_blank())
+
+ggpubr::ggarrange(p1, p2, p3, widths = c(2, 3, 1), nrow = 1, align = "h")
+
+ggsave("inst/figures/intro.pdf", height = 3, width = 12)
