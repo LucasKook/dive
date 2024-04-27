@@ -8,7 +8,7 @@ args <- commandArgs(trailingOnly = TRUE)
 scenario <- if (length(args) != 0) args[1] else 1
 
 ### File names
-save <- TRUE
+save <- FALSE
 odir <- file.path("inst/results/simulations", Sys.Date())
 fname <- paste0("sim-res-", scenario)
 
@@ -71,15 +71,12 @@ ns <- c(1e2, 3e2, 7e2, 1e3)
 # FUNs --------------------------------------------------------------------
 
 fit_adaptive <- function(
-    args, epochs, max_iter = 5, stepsize = 2, alpha = 0.1, ...
+    args, epochs, max_iter = 5, stepsize = 2, alpha = 0.1, ws = NULL, ...
 ) {
   for (iter in seq_len(max_iter)) {
     mod <- do.call("ColrDA", c(args, list(tf_seed = iter)))
-    tmp <- get_weights(mod$model)
-    tmp[[1]][] <- qlogis(seq(0.0001, 0.9999, length.out = length(tmp[[1]])))
-    tmp[[2]][] <- - seq_len(length(tmp[[2]])) + 0.5
-    tmp[[3]][] <- 4
-    set_weights(mod$model, tmp)
+    if (!is.null(ws))
+      set_weights(mod$model, ws)
     # plot(args$data$Y, predict(mod, type = "cdf"), col = args$data$D + 1)
     fit(mod, epochs = epochs, ...)
     iPIT <- predict(mod, type = "cdf")
@@ -125,8 +122,14 @@ res <- lapply(ns, \(tn) {
         m0 <- Colr(Y | D ~ 1, data = dat, support = supp <- range(dat$Y),
                    order = tord)
 
+        ### Warmstart with conditional distribution
+        mtmp <- ColrNN(Y | D ~ 1, data = dat, order = tord,
+                       optimizer = optimizer_adam(1e-2))
+        fit(mtmp, epochs = 3e3, validation_split = 0, callbacks = list(
+          callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20),
+          callback_early_stopping("loss", patience = 200)))
+        tmp <- get_weights(mtmp$model)
         ### Fit DIVE
-        debugonce(fit_adaptive)
         args <- list(formula = Y | D ~ 1, data = dat, anchor = ~ Z,
                      loss = "indep", optimizer = optimizer_adam(tlr),
                      xi = 1, trafo_options = trafo_control(
@@ -134,7 +137,7 @@ res <- lapply(ns, \(tn) {
         cb <- list(callback_reduce_lr_on_plateau("loss", patience = 2e2,
                                                  factor = 0.9),
                    callback_early_stopping("loss", patience = 4e2))
-        m <- fit_adaptive(args, nep, callbacks = cb)
+        m <- fit_adaptive(args, nep, callbacks = cb, ws = tmp)
 
         ### Evaluate
         dat$TRAM <- c(predict(m0, which = "distribution",

@@ -8,7 +8,7 @@ theme_set(theme_bw() + theme(text = element_text(size = 13.5)))
 
 # DGP ---------------------------------------------------------------------
 
-setting <- c("rinv-violated", "rsim-violated", "cmrs-violated", "intro")[1]
+setting <- c("rinv-violated", "rsim-violated", "cmrs-violated", "intro")[4]
 if (setting == "cmrs-violated") {
   tg0 <- \(h, ny) h
   tg1 <- \(h, ny) -h
@@ -64,14 +64,14 @@ pri <- ggplot(pd, aes(x = R0, y = R1)) +
 ### Plot rank similarity
 prs <- ggplot(pd |> pivot_longer(R0:R1), aes(x = H, y = value, color = name)) +
   geom_point(show.legend = FALSE) +
-  labs(x = "H", y = parse(text = "Rank:~{{F[d]*'*'}}(g[d](H,N[Y]))")) +
+  labs(x = "H", y = parse(text = "{{F[d]*'*'}}(g[d](H,N[Y]))")) +
   scale_color_discrete(labels = c("R1" = "1", "R0" = "0"))
 
 ### Plot conditional mean rank similarity
 pcmrs <- ggplot(pd |> pivot_longer(R0:R1), aes(x = qH, y = value, color = name)) +
   {if (length(unique(pd$qH)) > 2) geom_point() else ggbeeswarm::geom_quasirandom()} +
   labs(x = parse(text = "pi(H)"), color = "", y = parse(
-    text = "Rank:~{{F[d]*'*'}}(g[d](H,N[Y]))")) +
+    text = "{{F[d]*'*'}}(g[d](H,N[Y]))")) +
   scale_color_discrete(labels = c("R1" = parse(text = "d==1"), "R0" = parse(text = "d==0")))
 
 ### Plot uniformity condition
