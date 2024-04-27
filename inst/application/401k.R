@@ -16,23 +16,24 @@ d401k <- read_csv("inst/data/401k.csv")
 
 dat <- data.frame(
   y = d401k$net_tfa / 1e3,
-  d = d401k$p401,
+  d = factor(d401k$p401),
   z = d401k$e401
 )[sample.int(nrow(d401k), 1e3), ]
+
+idx <- which(dat$y == 0)
+dat$y[idx] <- runif(length(idx), max(dat$y[dat$y < 0]), min(dat$y[dat$y > 0]))
 
 # FUNs --------------------------------------------------------------------
 
 fit_adaptive <- function(
-    args, epochs, max_iter = 5, stepsize = 2, alpha = 0.1, ...
+    args, epochs, max_iter = 5, stepsize = 2, alpha = 0.1, ws = NULL, ...
 ) {
   for (iter in seq_len(max_iter)) {
     mod <- do.call("ColrDA", c(args, list(tf_seed = iter)))
-    tmp <- get_weights(mod$model)
-    tmp[[1]][] <- qlogis(seq(0.01, 0.99, length.out = length(tmp[[1]])))
-    tmp[[2]][] <- - seq_len(length(tmp[[2]])) + 0.5
-    tmp[[3]][] <- 4
-    set_weights(mod$model, tmp)
-    plot(args$data$y, predict(mod, type = "cdf"), col = args$data$d + 1)
+    if (!is.null(ws))
+      set_weights(mod$model, ws)
+    browser()
+    # plot(args$data$y, predict(mod, type = "cdf"), col = args$data$d)
     fit(mod, epochs = epochs, ...)
     iPIT <- predict(mod, type = "cdf")
     unif <- ks.test(iPIT, "punif")$p.value
@@ -53,14 +54,23 @@ fit_adaptive <- function(
 
 # Run ---------------------------------------------------------------------
 
-### Fit
-m0 <- BoxCox(y | d ~ 1, data = dat, support = range(dat$y), order = 10)
+tord <- 10
 
+### Fit
+m0 <- BoxCox(y | 0 + d ~ 1, data = dat, support = range(dat$y), order = tord)
+
+### Warmstart with conditional distribution
+mtmp <- ColrNN(y | d ~ 1, data = dat, order = tord,
+               optimizer = optimizer_adam(0.1))
+fit(mtmp, epochs = 3e3, validation_split = 0, callbacks = list(
+  callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20),
+  callback_early_stopping("loss", patience = 40)))
+tmp <- get_weights(mtmp$model)
 args <- list(formula = y | d ~ 1, data = dat, anchor = ~ z, loss = "indep",
-             optimizer = optimizer_adam(0.1), order = 10, xi = 0.1)
+             optimizer = optimizer_adam(0.01), order = tord, xi = 0.001)
 cb <- list(callback_reduce_lr_on_plateau("loss", patience = 2e2, factor = 0.9),
            callback_early_stopping("loss", patience = 4e2))
-m <- fit_adaptive(args, 1e4, callbacks = cb)
+m <- fit_adaptive(args, 1e4, callbacks = cb, ws = tmp)
 
 ### Predict
 dat$TRAM <- predict(m0, which = "distribution", type = "distribution")
