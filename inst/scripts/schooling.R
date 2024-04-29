@@ -2,6 +2,7 @@
 ### LK 2023
 
 set.seed(12)
+save <- TRUE
 
 # DEPs --------------------------------------------------------------------
 
@@ -24,16 +25,16 @@ plot(m0, which = "distribution", newdata = data.frame(
 
 m <- BoxCoxDA(wage | smsa ~ 1, data = dat, anchor = ~ nearcollege,
               loss = "indep", optimizer = optimizer_adam(0.05),
-              order = 30)
+              order = 10, xi = 1, tf_seed = 1)
 fit(m, epochs = 1e4)
 
 plot(m, newdata = data.frame(smsa = sort(unique(SchoolingReturns$smsa))),
      type = "cdf")
 
-dat$TRAM <- predict(m0, which = "distribution", type = "distribution")
+dat$Nonparametric <- predict(m0, which = "distribution", type = "distribution")
 dat$DIVE <- predict(m, type = "cdf")
 
-pdat <- dat |> pivot_longer(TRAM:DIVE, names_to = "model", values_to = "rank")
+pdat <- dat |> pivot_longer(Nonparametric:DIVE, names_to = "model", values_to = "rank")
 
 p1 <- ggplot(pdat, aes(x = rank, color = nearcollege)) +
   geom_abline(intercept = 0, slope = 1, linetype = 3, color = "gray40") +
@@ -46,10 +47,10 @@ p1 <- ggplot(pdat, aes(x = rank, color = nearcollege)) +
 
 nd <- expand_grid(smsa = sort(unique(dat$smsa)), wage = seq(
   min(dat$wage), max(dat$wage), length.out = 1e3))
-nd$TRAM <- predict(m0, type = "distribution", newdata = nd)
+nd$Nonparametric <- predict(m0, type = "distribution", newdata = nd)
 nd$DIVE <- predict(m, type = "cdf", newdata = nd)
 
-p2 <- ggplot(nd |> pivot_longer(TRAM:DIVE, names_to = "model", values_to = "cdf"),
+p2 <- ggplot(nd |> pivot_longer(Nonparametric:DIVE, names_to = "model", values_to = "cdf"),
        aes(x = wage, y = cdf, color = smsa)) +
   geom_rug(aes(x = wage), data = dat, inherit.aes = FALSE, color = "gray80",
            alpha = 0.1) +
@@ -61,4 +62,5 @@ p2 <- ggplot(nd |> pivot_longer(TRAM:DIVE, names_to = "model", values_to = "cdf"
 
 ggpubr::ggarrange(p2, p1, ncol = 1, align = "hv")
 
-ggsave("inst/figures/case-study.pdf", height = 6, width = 7)
+if (save)
+  ggsave("inst/figures/case-study.pdf", height = 6, width = 7)

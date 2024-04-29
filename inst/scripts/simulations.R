@@ -8,7 +8,7 @@ args <- commandArgs(trailingOnly = TRUE)
 scenario <- if (length(args) != 0) args[1] else 1
 
 ### File names
-save <- FALSE
+save <- TRUE
 odir <- file.path("inst/results/simulations", Sys.Date())
 fname <- paste0("sim-res-", scenario)
 
