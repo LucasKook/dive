@@ -2,7 +2,7 @@
 ### LK 2024
 
 set.seed(12)
-save <- FALSE
+save <- TRUE
 
 # DEPs --------------------------------------------------------------------
 
@@ -44,7 +44,7 @@ run <- \(iter) {
                optimizer = optimizer_adam(0.1), xi = 1/3, tf_seed = 1)
   cb <- list(callback_reduce_lr_on_plateau("loss", patience = 2e1, factor = 0.9),
              callback_early_stopping("loss", patience = 6e1))
-  m <- fit_adaptive(args, epochs = 1, max_iter = 5, stepsize = 2, alpha = 0.1,
+  m <- fit_adaptive(args, epochs = 1e4, max_iter = 5, stepsize = 2, alpha = 0.1,
                     callbacks = cb, ws = tmp, modFUN = "PolrDA")
 
   ### Predict
@@ -53,7 +53,7 @@ run <- \(iter) {
 
   pd <- dat |>
     pivot_longer(Nonparametric:DIVE, names_to = "model", values_to = "rank")
-  pdat$iter <- iter
+  pd$iter <- iter
 
   nd <- expand_grid(d = sort(unique(dat$d)), y = unique(dat$y))
   nd$oy <- ordered(nd$y)
