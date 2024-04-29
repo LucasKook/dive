@@ -63,7 +63,7 @@ oracle <- Vectorize(\(y, d) d * F1(y) + (1 - d) * F0(y))
 # Params ------------------------------------------------------------------
 
 nep <- 1e4
-rep <- 2
+rep <- 20
 ords <- c(10, 30, 50)
 lrs <- c(0.01, 0.05, 0.1)
 ns <- c(1e2, 3e2, 7e2, 1e3)
@@ -131,7 +131,8 @@ res <- lapply(ns, \(tn) {
 
 # Vis ---------------------------------------------------------------------
 
-ggplot(res, aes(x = ordered(n), y = value, fill = method)) +
+res |> pivot_longer(CmV:KS, names_to = "metric", values_to = "value") |>
+  ggplot(aes(x = ordered(n), y = value, fill = method)) +
   facet_wrap(~ metric) +
   geom_boxplot() +
   theme_bw()
