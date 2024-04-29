@@ -70,32 +70,6 @@ ns <- c(1e2, 3e2, 7e2, 1e3)
 
 # FUNs --------------------------------------------------------------------
 
-fit_adaptive <- function(
-    args, epochs, max_iter = 5, stepsize = 2, alpha = 0.1, ws = NULL, ...
-) {
-  for (iter in seq_len(max_iter)) {
-    mod <- do.call("ColrDA", c(args, list(tf_seed = iter)))
-    if (!is.null(ws))
-      set_weights(mod$model, ws)
-    # plot(args$data$Y, predict(mod, type = "cdf"), col = args$data$D + 1)
-    fit(mod, epochs = epochs, ...)
-    iPIT <- predict(mod, type = "cdf")
-    unif <- ks.test(iPIT, "punif")$p.value
-    indep <- dHSIC::dhsic.test(iPIT, args$data$Z, method = "gamma")$p.value
-    mod$xi <- args$xi
-    mod$p.unif <- unif
-    mod$p.indep <- indep
-    if (min(unif, indep) > alpha)
-      return(mod)
-    else
-      args$xi <- ifelse(indep < unif, args$xi * (1 + stepsize),
-                        args$xi / (1 + stepsize))
-  }
-  message("No solution for which uniformity and independence is not
-          rejected at level alpha.")
-  return(do.call("ColrDA", args))
-}
-
 check_unif_indep <- function(iPIT, Z) {
   plot(iPIT ~ Z)
   c(unif = ks.test(iPIT, "punif")$p.value,
@@ -137,7 +111,7 @@ res <- lapply(ns, \(tn) {
         cb <- list(callback_reduce_lr_on_plateau("loss", patience = 2e2,
                                                  factor = 0.9),
                    callback_early_stopping("loss", patience = 4e2))
-        m <- fit_adaptive(args, nep, callbacks = cb, ws = tmp)
+        m <- fit_adaptive(args, nep, callbacks = cb, ws = tmp, modFUN = ColrDA)
 
         ### Evaluate
         dat$TRAM <- c(predict(m0, which = "distribution",
