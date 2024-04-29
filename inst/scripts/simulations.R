@@ -111,7 +111,7 @@ res <- lapply(ns, \(tn) {
         cb <- list(callback_reduce_lr_on_plateau("loss", patience = 2e2,
                                                  factor = 0.9),
                    callback_early_stopping("loss", patience = 4e2))
-        m <- fit_adaptive(args, nep, callbacks = cb, ws = tmp, modFUN = ColrDA)
+        m <- fit_adaptive(args, nep, callbacks = cb, ws = tmp, modFUN = "ColrDA")
 
         ### Evaluate
         dat$TRAM <- c(predict(m0, which = "distribution",
