@@ -84,4 +84,4 @@ ggpubr::ggarrange(p2, p1, ncol = 1, align = "hv")
 # Save --------------------------------------------------------------------
 
 if (save)
-  ggsave("inst/figures/case-study.pdf", height = 6, width = 7)
+  ggsave("inst/figures/schooling.pdf", height = 6, width = 7)
