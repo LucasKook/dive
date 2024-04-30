@@ -80,7 +80,8 @@ p1 <- ggplot(pdat, aes(x = rank, color = factor(z), linetype = factor(iter))) +
   scale_color_brewer(palette = "Dark2") +
   labs(x = "Estimated iPIT", y = "ECDF", color = "401(k) eligibility") +
   theme_bw() +
-  theme(text = element_text(size = 13.5))
+  theme(text = element_text(size = 13.5)) +
+  guides(linetype = "none")
 
 p2 <- ggplot(nd |> pivot_longer(Nonparametric:DIVE, names_to = "model", values_to = "cdf"),
        aes(x = y, y = cdf, color = factor(d), linetype = factor(iter))) +
@@ -91,7 +92,8 @@ p2 <- ggplot(nd |> pivot_longer(Nonparametric:DIVE, names_to = "model", values_t
   labs(x = "Net total financial assets", y = "Estimated CDF", color = "401(k) participation") +
   theme_bw() +
   theme(text = element_text(size = 13.5)) +
-  scale_color_manual(values = colorspace::diverge_hcl(2))
+  scale_color_manual(values = colorspace::diverge_hcl(2)) +
+  guides(linetype = "none")
 
 ggpubr::ggarrange(p2, p1, ncol = 1, align = "hv")
 
