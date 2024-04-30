@@ -98,7 +98,7 @@ ggpubr::ggarrange(p2, p1, ncol = 1, align = "hv")
 # Save --------------------------------------------------------------------
 
 if (save) {
-  write_csv(pdat, "inst/figures/401k-pdat.csv")
-  write_csv(nd, "inst/figures/401k-nd.csv")
+  saveRDS(pdat, "inst/figures/401k-pdat.rds")
+  saveRDS(nd, "inst/figures/401k-nd.rds")
   ggsave("inst/figures/401k.pdf", height = 6, width = 8)
 }
