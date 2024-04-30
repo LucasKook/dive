@@ -17,6 +17,7 @@ data("SchoolingReturns", package = "ivreg")
 SchoolingReturns$wage <- log(SchoolingReturns$wage)
 
 run <- \(iter) {
+  set.seed(iter)
   dat <- SchoolingReturns[sample.int(nrow(SchoolingReturns), 1e3), ]
 
   # Run ---------------------------------------------------------------------
@@ -27,7 +28,7 @@ run <- \(iter) {
   ### DIVE
   args <- list(formula = wage | smsa ~ 1, data = dat, anchor = ~ nearcollege,
                 loss = "indep", optimizer = optimizer_adam(0.05),
-                order = 10, xi = 1, tf_seed = 1)
+                order = 10, xi = 1, tf_seed = iter)
   cb <- list(callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20),
              callback_early_stopping("loss", patience = 40))
   m <- fit_adaptive(args, epochs = 1e4, max_iter = 5, stepsize = 2, alpha = 0.1,
@@ -49,7 +50,7 @@ run <- \(iter) {
   list(pd = pd, nd = nd)
 }
 
-nsim <- 10
+nsim <- 50
 ret <- lapply(seq_len(nsim), run)
 pdat <- do.call("rbind", lapply(ret, \(x) x[["pd"]]))
 nd <- do.call("rbind", lapply(ret, \(x) x[["nd"]]))

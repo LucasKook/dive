@@ -22,6 +22,7 @@ d401k <- data.frame(
 )
 
 run <- \(iter) {
+  set.seed(iter)
   dat <- d401k[sample.int(nrow(d401k), 1e2), ]
 
   idx <- which(dat$y == 0)
@@ -41,7 +42,7 @@ run <- \(iter) {
   tmp[[2]][] <- -4.5
   tmp[[3]][] <- -1
   args <- list(formula = oy | d ~ 1, data = dat, anchor = ~ z, loss = "indep",
-               optimizer = optimizer_adam(0.1), xi = 1/3, tf_seed = 1)
+               optimizer = optimizer_adam(0.1), xi = 1/3, tf_seed = iter)
   cb <- list(callback_reduce_lr_on_plateau("loss", patience = 2e1, factor = 0.9),
              callback_early_stopping("loss", patience = 6e1))
   m <- fit_adaptive(args, epochs = 1e4, max_iter = 5, stepsize = 2, alpha = 0.1,
@@ -65,7 +66,7 @@ run <- \(iter) {
 
 }
 
-nsim <- 10
+nsim <- 50
 ret <- lapply(seq_len(nsim), run)
 pdat <- do.call("rbind", lapply(ret, \(x) x[["pd"]]))
 nd <- do.call("rbind", lapply(ret, \(x) x[["nd"]]))
