@@ -4,4 +4,5 @@
 .Ruserdata
 *.pdf
 *.csv
+*.rds
 inst/ignore/
