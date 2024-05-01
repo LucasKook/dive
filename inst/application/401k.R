@@ -19,15 +19,11 @@ d401k <- data.frame(
   y = raw$net_tfa / 1e3,
   d = factor(raw$p401),
   z = factor(raw$e401)
-)
+) |> filter(y > 0)
 
 run <- \(iter) {
   set.seed(iter)
   dat <- d401k[sample.int(nrow(d401k), 1e3), ]
-
-  idx <- which(dat$y == 0)
-  dat$y[idx] <- runif(length(idx), max(dat$y[dat$y < 0]), min(dat$y[dat$y > 0]))
-
   dat$oy <- ordered(dat$y)
 
   # Run ---------------------------------------------------------------------
@@ -72,6 +68,9 @@ pdat <- do.call("rbind", lapply(ret, \(x) x[["pd"]]))
 nd <- do.call("rbind", lapply(ret, \(x) x[["nd"]]))
 
 # Vis ---------------------------------------------------------------------
+
+# pdat <- read_csv("inst/results/figures/401k-pdat.csv")
+# nd <- read_csv("inst/results/figures/401k-nd.csv")
 
 p1 <- ggplot(pdat, aes(x = rank, color = factor(z), linetype = factor(iter))) +
   geom_abline(intercept = 0, slope = 1, linetype = 3, color = "gray40") +
