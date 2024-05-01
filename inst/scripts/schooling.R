@@ -18,7 +18,7 @@ SchoolingReturns$wage <- log(SchoolingReturns$wage)
 
 run <- \(iter) {
   set.seed(iter)
-  dat <- SchoolingReturns[sample.int(nrow(SchoolingReturns), 1e3), ]
+  dat <- SchoolingReturns[sample.int(nrow(SchoolingReturns), 3e3), ]
 
   # Run ---------------------------------------------------------------------
 
@@ -34,8 +34,8 @@ run <- \(iter) {
   m <- fit_adaptive(args, epochs = 1e4, max_iter = 5, stepsize = 2, alpha = 0.1,
                     ws = NULL, modFUN = "BoxCoxDA", callbacks = cb)
 
-  dat$Nonparametric <- predict(m0, which = "distribution", type = "distribution")
-  dat$DIVE <- predict(m, type = "cdf")
+  dat$Nonparametric <- c(predict(m0, which = "distribution", type = "distribution"))
+  dat$DIVE <- c(predict(m, type = "cdf"))
 
   pd <- dat |>
     pivot_longer(Nonparametric:DIVE, names_to = "model", values_to = "rank") |>
@@ -43,8 +43,8 @@ run <- \(iter) {
 
   nd <- expand_grid(smsa = sort(unique(dat$smsa)), wage = seq(
     min(dat$wage), max(dat$wage), length.out = 1e3))
-  nd$Nonparametric <- predict(m0, type = "distribution", newdata = nd)
-  nd$DIVE <- predict(m, type = "cdf", newdata = nd)
+  nd$Nonparametric <- c(predict(m0, type = "distribution", newdata = nd))
+  nd$DIVE <- c(predict(m, type = "cdf", newdata = nd))
   nd$iter <- iter
 
   list(pd = pd, nd = nd)
@@ -60,7 +60,8 @@ nd <- do.call("rbind", lapply(ret, \(x) x[["nd"]]))
 p1 <- ggplot(pdat, aes(x = rank, color = nearcollege, linetype = factor(iter))) +
   geom_abline(intercept = 0, slope = 1, linetype = 3, color = "gray40") +
   facet_wrap(~ model) +
-  stat_ecdf() +
+  stat_ecdf(alpha = 0.3) +
+  stat_ecdf(aes(linetype = NULL), linewidth = 1) +
   scale_color_brewer(palette = "Dark2") +
   labs(x = "Estimated iPIT", y = "ECDF", color = "Near college") +
   theme_bw() +
@@ -70,10 +71,8 @@ p1 <- ggplot(pdat, aes(x = rank, color = nearcollege, linetype = factor(iter))) 
 p2 <- ggplot(
   nd |> pivot_longer(Nonparametric:DIVE, names_to = "model", values_to = "cdf"),
   aes(x = wage, y = cdf, color = smsa, linetype = factor(iter))) +
-  # geom_rug(aes(x = wage), data = dat, inherit.aes = FALSE, color = "gray80",
-  #          alpha = 0.1) +
   facet_wrap(~ model) +
-  geom_line() +
+  geom_line(alpha = 0.3) +
   labs(x = "log(wage)", y = "Estimated CDF", color = "Metropolitan area") +
   theme_bw() +
   theme(text = element_text(size = 13.5)) +
@@ -85,7 +84,7 @@ ggpubr::ggarrange(p2, p1, ncol = 1, align = "hv")
 # Save --------------------------------------------------------------------
 
 if (save) {
-  saveRDS(pdat, "inst/figures/schooling-pdat.rds")
-  saveRDS(nd, "inst/figures/schooling-nd.rds")
+  write_csv(pdat, "inst/figures/schooling-pdat.csv")
+  write_csv(nd, "inst/figures/schooling-nd.csv")
   ggsave("inst/figures/schooling.pdf", height = 6, width = 7)
 }

@@ -23,7 +23,7 @@ d401k <- data.frame(
 
 run <- \(iter) {
   set.seed(iter)
-  dat <- d401k[sample.int(nrow(d401k), 1e2), ]
+  dat <- d401k[sample.int(nrow(d401k), 3e3), ]
 
   idx <- which(dat$y == 0)
   dat$y[idx] <- runif(length(idx), max(dat$y[dat$y < 0]), min(dat$y[dat$y > 0]))
@@ -49,8 +49,8 @@ run <- \(iter) {
                     callbacks = cb, ws = tmp, modFUN = "PolrDA")
 
   ### Predict
-  dat$Nonparametric <- predict(m0, which = "distribution", type = "distribution")
-  dat$DIVE <- predict(m, type = "cdf")
+  dat$Nonparametric <- c(predict(m0, which = "distribution", type = "distribution"))
+  dat$DIVE <- c(predict(m, type = "cdf"))
 
   pd <- dat |>
     pivot_longer(Nonparametric:DIVE, names_to = "model", values_to = "rank")
@@ -58,8 +58,8 @@ run <- \(iter) {
 
   nd <- expand_grid(d = sort(unique(dat$d)), y = unique(dat$y))
   nd$oy <- ordered(nd$y)
-  nd$Nonparametric <- predict(m0, type = "distribution", newdata = nd)
-  nd$DIVE <- predict(m, type = "cdf", newdata = nd)
+  nd$Nonparametric <- c(predict(m0, type = "distribution", newdata = nd))
+  nd$DIVE <- c(predict(m, type = "cdf", newdata = nd))
   nd$iter <- iter
 
   list(pd = pd, nd = nd)
@@ -76,19 +76,19 @@ nd <- do.call("rbind", lapply(ret, \(x) x[["nd"]]))
 p1 <- ggplot(pdat, aes(x = rank, color = factor(z), linetype = factor(iter))) +
   geom_abline(intercept = 0, slope = 1, linetype = 3, color = "gray40") +
   facet_wrap(~ model) +
-  stat_ecdf(alpha = 0.5) +
+  stat_ecdf(alpha = 0.3) +
+  stat_ecdf(aes(linetype = NULL), linewidth = 1) +
   scale_color_brewer(palette = "Dark2") +
   labs(x = "Estimated iPIT", y = "ECDF", color = "401(k) eligibility") +
   theme_bw() +
   theme(text = element_text(size = 13.5)) +
   guides(linetype = "none")
 
-p2 <- ggplot(nd |> pivot_longer(Nonparametric:DIVE, names_to = "model", values_to = "cdf"),
-       aes(x = y, y = cdf, color = factor(d), linetype = factor(iter))) +
-  # geom_rug(aes(x = y), data = dat, inherit.aes = FALSE, color = "gray80",
-  #          alpha = 0.1) +
+p2 <- nd |>
+  pivot_longer(Nonparametric:DIVE, names_to = "model", values_to = "cdf") |>
+  ggplot(aes(x = y, y = cdf, color = factor(d), linetype = factor(iter))) +
   facet_wrap(~ model) +
-  geom_step(alpha = 0.5) +
+  geom_step(alpha = 0.3) +
   labs(x = "Net total financial assets", y = "Estimated CDF", color = "401(k) participation") +
   theme_bw() +
   theme(text = element_text(size = 13.5)) +
@@ -100,7 +100,7 @@ ggpubr::ggarrange(p2, p1, ncol = 1, align = "hv")
 # Save --------------------------------------------------------------------
 
 if (save) {
-  saveRDS(pdat, "inst/figures/401k-pdat.rds")
-  saveRDS(nd, "inst/figures/401k-nd.rds")
+  write_csv(pdat, "inst/figures/401k-pdat.csv")
+  write_csv(nd, "inst/figures/401k-nd.csv")
   ggsave("inst/figures/401k.pdf", height = 6, width = 8)
 }
