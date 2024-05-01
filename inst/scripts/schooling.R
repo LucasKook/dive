@@ -18,7 +18,7 @@ SchoolingReturns$wage <- log(SchoolingReturns$wage)
 
 run <- \(iter) {
   set.seed(iter)
-  dat <- SchoolingReturns[sample.int(nrow(SchoolingReturns), 3e3), ]
+  dat <- SchoolingReturns[sample.int(nrow(SchoolingReturns), 1e3), ]
 
   # Run ---------------------------------------------------------------------
 

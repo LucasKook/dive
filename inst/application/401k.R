@@ -23,7 +23,7 @@ d401k <- data.frame(
 
 run <- \(iter) {
   set.seed(iter)
-  dat <- d401k[sample.int(nrow(d401k), 3e3), ]
+  dat <- d401k[sample.int(nrow(d401k), 1e3), ]
 
   idx <- which(dat$y == 0)
   dat$y[idx] <- runif(length(idx), max(dat$y[dat$y < 0]), min(dat$y[dat$y > 0]))
