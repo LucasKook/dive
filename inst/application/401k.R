@@ -76,8 +76,7 @@ nd <- do.call("rbind", lapply(ret, \(x) x[["nd"]]))
 p1 <- ggplot(pdat, aes(x = rank, color = factor(z), linetype = factor(iter))) +
   geom_abline(intercept = 0, slope = 1, linetype = 3, color = "gray40") +
   facet_wrap(~ model) +
-  stat_ecdf(alpha = 0.3) +
-  stat_ecdf(aes(linetype = NULL), linewidth = 1) +
+  stat_ecdf(alpha = 0.5) +
   scale_color_brewer(palette = "Dark2") +
   labs(x = "Estimated iPIT", y = "ECDF", color = "401(k) eligibility") +
   theme_bw() +
@@ -88,19 +87,19 @@ p2 <- nd |>
   pivot_longer(Nonparametric:DIVE, names_to = "model", values_to = "cdf") |>
   ggplot(aes(x = y, y = cdf, color = factor(d), linetype = factor(iter))) +
   facet_wrap(~ model) +
-  geom_step(alpha = 0.3) +
+  geom_step(alpha = 0.5) +
   labs(x = "Net total financial assets", y = "Estimated CDF", color = "401(k) participation") +
   theme_bw() +
   theme(text = element_text(size = 13.5)) +
   scale_color_manual(values = colorspace::diverge_hcl(2)) +
   guides(linetype = "none")
 
-ggpubr::ggarrange(p2, p1, ncol = 1, align = "hv")
+ggpubr::ggarrange(p2, p1, nrow = 1, align = "hv", legend = "top")
 
 # Save --------------------------------------------------------------------
 
 if (save) {
   write_csv(pdat, "inst/figures/401k-pdat.csv")
   write_csv(nd, "inst/figures/401k-nd.csv")
-  ggsave("inst/figures/401k.pdf", height = 6, width = 8)
+  ggsave("inst/figures/401k.pdf", height = 3.5, width = 12)
 }

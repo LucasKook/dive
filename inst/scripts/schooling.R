@@ -57,11 +57,13 @@ nd <- do.call("rbind", lapply(ret, \(x) x[["nd"]]))
 
 # Vis ---------------------------------------------------------------------
 
+# pdat <- read_csv("inst/results/figures/schooling-pdat.csv")
+# nd <- read_csv("inst/results/figures/schooling-nd.csv")
+
 p1 <- ggplot(pdat, aes(x = rank, color = nearcollege, linetype = factor(iter))) +
   geom_abline(intercept = 0, slope = 1, linetype = 3, color = "gray40") +
   facet_wrap(~ model) +
-  stat_ecdf(alpha = 0.3) +
-  stat_ecdf(aes(linetype = NULL), linewidth = 1) +
+  stat_ecdf(alpha = 0.5) +
   scale_color_brewer(palette = "Dark2") +
   labs(x = "Estimated iPIT", y = "ECDF", color = "Near college") +
   theme_bw() +
@@ -72,19 +74,19 @@ p2 <- ggplot(
   nd |> pivot_longer(Nonparametric:DIVE, names_to = "model", values_to = "cdf"),
   aes(x = wage, y = cdf, color = smsa, linetype = factor(iter))) +
   facet_wrap(~ model) +
-  geom_line(alpha = 0.3) +
+  geom_line(alpha = 0.5) +
   labs(x = "log(wage)", y = "Estimated CDF", color = "Metropolitan area") +
   theme_bw() +
   theme(text = element_text(size = 13.5)) +
   scale_color_manual(values = colorspace::diverge_hcl(2)) +
   guides(linetype = "none")
 
-ggpubr::ggarrange(p2, p1, ncol = 1, align = "hv")
+ggpubr::ggarrange(p2, p1, nrow = 1, align = "hv", legend = "top")
 
 # Save --------------------------------------------------------------------
 
 if (save) {
   write_csv(pdat, "inst/figures/schooling-pdat.csv")
   write_csv(nd, "inst/figures/schooling-nd.csv")
-  ggsave("inst/figures/schooling.pdf", height = 6, width = 7)
+  ggsave("inst/figures/schooling.pdf", height = 3.5, width = 12)
 }
