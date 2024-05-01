@@ -67,7 +67,7 @@ p2 <- ggplot(
   aes(x = wage, y = cdf, color = smsa, group = interaction(smsa, iter))) +
   facet_wrap(~ model) +
   geom_line(alpha = 0.2) +
-  labs(x = "log(wage)", y = "Estimated CDF", color = "Metropolitan area") +
+  labs(x = "Log-transformed wage ", y = "Estimated CDF", color = "Metropolitan area") +
   theme_bw() +
   theme(text = element_text(size = 13.5)) +
   scale_color_manual(values = colorspace::diverge_hcl(2)) +
@@ -82,7 +82,7 @@ p3 <- nd |>
   ggplot(aes(x = wage, y = dce, group = interaction(model, iter))) +
   facet_wrap(~ model) +
   geom_line(alpha = 0.3) +
-  labs(x = "log(wage)", y = "Estimated DCE", color = "Model") +
+  labs(x = "Log-transformed wage", y = "Estimated DCE", color = "Model") +
   theme_bw() +
   theme(text = element_text(size = 13.5)) +
   scale_color_manual(values = colorspace::diverge_hcl(2))

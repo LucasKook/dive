@@ -71,7 +71,8 @@ p2 <- nd |>
   ggplot(aes(x = y, y = cdf, color = factor(d), group = interaction(d, iter))) +
   facet_wrap(~ model) +
   geom_step(alpha = 0.5) +
-  labs(x = "Net total financial assets", y = "Estimated CDF", color = "401(k) participation") +
+  labs(x = "Log-transformed net total financial assets",
+       y = "Estimated CDF", color = "401(k) participation") +
   theme_bw() +
   theme(text = element_text(size = 13.5)) +
   scale_color_manual(values = colorspace::diverge_hcl(2))
@@ -85,7 +86,8 @@ p3 <- nd |>
   ggplot(aes(x = y, y = dce, group = interaction(model, iter))) +
   facet_wrap(~ model) +
   geom_line(alpha = 0.3) +
-  labs(x = "Net total financial assets", y = "Estimated DCE", color = "Model") +
+  labs(x = "Log-transformed net total financial assets",
+       y = "Estimated DCE", color = "Model") +
   theme_bw() +
   theme(text = element_text(size = 13.5)) +
   scale_color_manual(values = colorspace::diverge_hcl(2))
