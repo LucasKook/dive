@@ -10,7 +10,7 @@ d401k <- data.frame(
   y = raw$net_tfa / 1e3,
   d = factor(raw$p401),
   z = factor(raw$e401)
-) |> filter(y > 0)
+) |> filter(y > 0) |> mutate(y = log(y))
 
 res <- do.call("rbind", lapply(1:50, \(iter) {
   dat <- d401k[sample.int(nrow(d401k), 1e3), ]

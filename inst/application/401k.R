@@ -19,7 +19,7 @@ d401k <- data.frame(
   y = raw$net_tfa / 1e3,
   d = factor(raw$p401),
   z = factor(raw$e401)
-) |> filter(y > 0)
+) |> filter(y > 0) |> mutate(y = log(y))
 
 run <- \(iter) {
   set.seed(iter)
