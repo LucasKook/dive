@@ -3,7 +3,7 @@ fit_adaptive <- function(
     modFUN = "BoxCoxDA", ...
 ) {
   ### Build model
-  mod <- do.call(modFUN, c(args, list(tf_seed = iter)))
+  mod <- do.call(modFUN, args)
   ### Warmstart if supplied
   if (!is.null(ws))
     set_weights(mod$model, ws)
