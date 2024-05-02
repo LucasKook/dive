@@ -55,7 +55,8 @@ run <- \(iter) {
   pd$iter <- iter
 
   nd <- expand_grid(d = sort(unique(dat$d)), y = unique(dat$y))
-  nd$oy <- ordered(nd$y)
+  # nd$oy <- ordered(nd$y)
+  nd$oy <- nd$y
   nd$Nonparametric <- c(predict(m0, type = "distribution", newdata = nd))
   nd$DIVE <- c(predict(m, type = "cdf", newdata = nd))
   nd$iter <- iter
