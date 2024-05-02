@@ -24,7 +24,8 @@ d401k <- data.frame(
 run <- \(iter) {
   set.seed(iter)
   dat <- d401k[sample.int(nrow(d401k), 1e3), ]
-  dat$oy <- ordered(dat$y)
+  dat$oy <- dat$y
+  # dat$oy <- ordered(dat$y)
 
   # Run ---------------------------------------------------------------------
 
@@ -32,17 +33,18 @@ run <- \(iter) {
   m0 <- BoxCox(y | 0 + d ~ 1, data = dat, support = range(dat$y), order = 10)
 
   ### Initialization
-  mtmp <- PolrNN(oy | d ~ 1, data = dat)
-  tmp <- get_weights(mtmp$model)
-  tmp[[1]][] <- -4.5
-  tmp[[2]][] <- -4.5
-  tmp[[3]][] <- -1
+  # mtmp <- PolrNN(oy | d ~ 1, data = dat)
+  # tmp <- get_weights(mtmp$model)
+  # tmp[[1]][] <- -4.5
+  # tmp[[2]][] <- -4.5
+  # tmp[[3]][] <- -1
+  tmp <- NULL
   args <- list(formula = oy | d ~ 1, data = dat, anchor = ~ z, loss = "indep",
                optimizer = optimizer_adam(0.1), xi = 1/3, tf_seed = iter)
   cb <- list(callback_reduce_lr_on_plateau("loss", patience = 2e1, factor = 0.9),
              callback_early_stopping("loss", patience = 6e1))
   m <- fit_adaptive(args, epochs = 1e4, max_iter = 5, stepsize = 2, alpha = 0.1,
-                    callbacks = cb, ws = tmp, modFUN = "PolrDA")
+                    callbacks = cb, ws = tmp, modFUN = "BoxCoxDA") # "PolrDA")
 
   ### Predict
   dat$Nonparametric <- c(predict(m0, which = "distribution", type = "distribution"))
