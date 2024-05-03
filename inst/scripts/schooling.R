@@ -31,7 +31,7 @@ run <- \(iter) {
                 order = 10, xi = 1, tf_seed = iter)
   cb <- list(callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20),
              callback_early_stopping("loss", patience = 40))
-  m <- fit_adaptive(args, epochs = 1e4, max_iter = 5, stepsize = 2, alpha = 0.1,
+  m <- fit_adaptive(args, epochs = 1e4, max_iter = 10, stepsize = 2, alpha = 0.1,
                     ws = NULL, modFUN = "BoxCoxDA", callbacks = cb)
 
   dat$Nonparametric <- c(predict(m0, which = "distribution", type = "distribution"))
