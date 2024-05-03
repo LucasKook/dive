@@ -32,18 +32,25 @@ run <- \(iter) {
   ### Fit
   m0 <- BoxCox(y | 0 + d ~ 1, data = dat, support = range(dat$y), order = 20)
 
+  ### Warmstart model
+  mtmp <- BoxCoxNN(y | d ~ 1, data = dat, optimizer = optimizer_adam(1e-2),
+                   order = 20)
+  fit(mtmp, epochs = 3e3, validation_split = 0, callbacks = list(
+    callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20),
+    callback_early_stopping("loss", patience = 200)))
+  tmp <- get_weights(mtmp$model)
   ### Initialization
   # mtmp <- PolrNN(oy | d ~ 1, data = dat)
   # tmp <- get_weights(mtmp$model)
   # tmp[[1]][] <- -4.5
   # tmp[[2]][] <- -4.5
   # tmp[[3]][] <- -1
-  tmp <- NULL
+  # tmp <- NULL
   args <- list(formula = oy | d ~ 1, data = dat, anchor = ~ z, loss = "indep",
                optimizer = optimizer_adam(0.1), xi = 1/3, tf_seed = iter,
                order = 20)
   cb <- list(callback_reduce_lr_on_plateau("loss", patience = 2e1, factor = 0.9),
-             callback_early_stopping("loss", patience = 6e1))
+             callback_early_stopping("loss", patience = 2e2))
   m <- fit_adaptive(args, epochs = 1e4, max_iter = 10, stepsize = 2, alpha = 0.1,
                     callbacks = cb, ws = tmp, modFUN = "BoxCoxDA") # "PolrDA")
 

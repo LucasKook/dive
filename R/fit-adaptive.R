@@ -1,6 +1,6 @@
 fit_adaptive <- function(
     args, epochs, max_iter = 5, stepsize = 2, alpha = 0.1, ws = NULL,
-    modFUN = "BoxCoxDA", start_xi = FALSE, ...
+    modFUN = "BoxCoxDA", start_xi = TRUE, ...
 ) {
   if (start_xi) {
     ### Build model
