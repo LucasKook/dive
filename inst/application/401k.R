@@ -30,7 +30,7 @@ run <- \(iter) {
   # Run ---------------------------------------------------------------------
 
   ### Fit
-  m0 <- BoxCox(y | 0 + d ~ 1, data = dat, support = range(dat$y), order = 10)
+  m0 <- BoxCox(y | 0 + d ~ 1, data = dat, support = range(dat$y), order = 20)
 
   ### Initialization
   # mtmp <- PolrNN(oy | d ~ 1, data = dat)
@@ -40,7 +40,8 @@ run <- \(iter) {
   # tmp[[3]][] <- -1
   tmp <- NULL
   args <- list(formula = oy | d ~ 1, data = dat, anchor = ~ z, loss = "indep",
-               optimizer = optimizer_adam(0.1), xi = 1/3, tf_seed = iter)
+               optimizer = optimizer_adam(0.1), xi = 1/3, tf_seed = iter,
+               order = 20)
   cb <- list(callback_reduce_lr_on_plateau("loss", patience = 2e1, factor = 0.9),
              callback_early_stopping("loss", patience = 6e1))
   m <- fit_adaptive(args, epochs = 1e4, max_iter = 10, stepsize = 2, alpha = 0.1,

@@ -70,7 +70,7 @@ p2 <- nd |>
                         labels = c("DIVE", "CCDF"))) |>
   ggplot(aes(x = y, y = cdf, color = factor(d), group = interaction(d, iter))) +
   facet_wrap(~ model) +
-  geom_step(alpha = 0.5) +
+  geom_line(alpha = 0.5) +
   labs(x = "Log-transformed net total financial assets",
        y = "Estimated CDF", color = "401(k) participation") +
   theme_bw() +
