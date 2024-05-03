@@ -39,8 +39,10 @@ fit_adaptive <- function(
     else
       args$xi <- ifelse(indep < unif, args$xi * (1 + stepsize),
                         args$xi / (1 + stepsize))
+    if (iter == max_iter) {
+      message("No solution for which uniformity and independence is not
+          rejected at level alpha. Returning last fitted model.")
+      return(mod)
+    }
   }
-  message("No solution for which uniformity and independence is not
-          rejected at level alpha.")
-  return(do.call(modFUN, args))
 }
