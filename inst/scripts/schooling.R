@@ -3,6 +3,7 @@
 
 set.seed(12)
 save <- TRUE
+warmstart <- FALSE
 
 # DEPs --------------------------------------------------------------------
 
@@ -26,11 +27,14 @@ run <- \(iter) {
   m0 <- BoxCox(wage | smsa ~ 1, data = dat, support = range(dat$wage))
 
   ### Warmstart model
-  mtmp <- BoxCoxNN(wage | smsa ~ 1, data = dat, optimizer = optimizer_adam(1e-2))
-  fit(mtmp, epochs = 3e3, validation_split = 0, callbacks = list(
-    callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20),
-    callback_early_stopping("loss", patience = 200)))
-  tmp <- get_weights(mtmp$model)
+  tmp <- NULL
+  if (warmstart) {
+    mtmp <- BoxCoxNN(wage | smsa ~ 1, data = dat, optimizer = optimizer_adam(1e-2))
+    fit(mtmp, epochs = 3e3, validation_split = 0, callbacks = list(
+      callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20),
+      callback_early_stopping("loss", patience = 200)))
+    tmp <- get_weights(mtmp$model)
+  }
 
   ### DIVE
   args <- list(formula = wage | smsa ~ 1, data = dat, anchor = ~ nearcollege,
