@@ -43,7 +43,8 @@ run <- \(iter) {
   cb <- list(callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20),
              callback_early_stopping("loss", patience = 40))
   m <- fit_adaptive(args, epochs = 1e4, max_iter = 10, stepsize = 2, alpha = 0.1,
-                    ws = tmp, modFUN = "BoxCoxDA", callbacks = cb)
+                    ws = tmp, modFUN = "BoxCoxDA", callbacks = cb,
+                    start_xi = warmstart)
 
   dat$Nonparametric <- c(predict(m0, which = "distribution", type = "distribution"))
   dat$DIVE <- c(predict(m, type = "cdf"))
