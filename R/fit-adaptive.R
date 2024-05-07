@@ -15,7 +15,7 @@ fit_adaptive <- function(
     hsic <- dHSIC::dhsic.test(iPIT, Z, method = "gamma")$statistic
     xi_start <- cmv / hsic
     args$xi <- xi_start
-    cat("Initializing xi=", round(xi_start, 3), "\n")
+    cat("\nInitializing xi =", round(xi_start, 3), "\n")
   }
   for (iter in seq_len(max_iter)) {
     ### Build model

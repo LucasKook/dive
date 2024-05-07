@@ -63,6 +63,7 @@ oracle <- Vectorize(\(y, d) d * F1(y) + (1 - d) * F0(y))
 # Params ------------------------------------------------------------------
 
 nep <- 1e4
+wep <- 3e3
 rep <- 50
 ords <- c(10, 30, 50)
 lrs <- c(0.01, 0.05, 0.1)
@@ -81,7 +82,10 @@ check_unif_indep <- function(iPIT, Z) {
 res <- lapply(ns, \(tn) {
   lapply(ords, \(tord) {
     lapply(lrs, \(tlr) {
+      cat("\nRunning with n =", tn, ", order =", tord, ", lr =", tlr, "\n")
+      pb <- txtProgressBar(min = 0, max = rep, style = 3)
       lapply(seq_len(rep), \(iter) {
+        setTxtProgressBar(pb, iter)
         ### Generate data
         dat <- dgp(tn)
 
@@ -99,9 +103,9 @@ res <- lapply(ns, \(tn) {
         ### Warmstart with conditional distribution
         mtmp <- ColrNN(Y | D ~ 1, data = dat, order = tord,
                        optimizer = optimizer_adam(1e-2))
-        fit(mtmp, epochs = 3e3, validation_split = 0, callbacks = list(
+        fit(mtmp, epochs = wep, validation_split = 0, callbacks = list(
           callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20),
-          callback_early_stopping("loss", patience = 200)))
+          callback_early_stopping("loss", patience = 200)), verbose = FALSE)
         tmp <- get_weights(mtmp$model)
         ### Fit DIVE
         args <- list(formula = Y | D ~ 1, data = dat, anchor = ~ Z,
@@ -111,7 +115,8 @@ res <- lapply(ns, \(tn) {
         cb <- list(callback_reduce_lr_on_plateau("loss", patience = 2e2,
                                                  factor = 0.9),
                    callback_early_stopping("loss", patience = 4e2))
-        m <- fit_adaptive(args, nep, callbacks = cb, ws = tmp, modFUN = "ColrDA")
+        m <- fit_adaptive(args, nep, callbacks = cb, ws = tmp, modFUN = "ColrDA",
+                          verbose = FALSE)
 
         ### Evaluate
         dat$TRAM <- c(predict(m0, which = "distribution",
