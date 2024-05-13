@@ -31,9 +31,9 @@ run <- \(iter) {
   if (warmstart) {
     mtmp <- BoxCoxNN(wage | smsa ~ 1, data = dat,
                      optimizer = optimizer_adam(1e-2))
-    fit(mtmp, epochs = 3e3, validation_split = 0, callbacks = list(
+    fit(mtmp, epochs = 3e3, validation_split = 0, verbose = FALSE, callbacks = list(
       callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20, min_delta = 1e-3),
-      callback_early_stopping("loss", patience = 40, min_delta = 1e-3)))
+      callback_early_stopping("loss", patience = 60, min_delta = 1e-3)))
     tmp <- get_weights(mtmp$model)
   }
 
@@ -43,10 +43,11 @@ run <- \(iter) {
                 order = 10, xi = 1, tf_seed = iter)
   cb <- \() list(callback_reduce_lr_on_plateau(
     "loss", factor = 0.9, patience = 20, min_delta = 1e-4),
-    callback_early_stopping("loss", patience = 40, min_delta = 1e-4))
+    callback_early_stopping("loss", patience = 60, min_delta = 1e-4))
   m <- fit_adaptive(args, epochs = 1e4, max_iter = 10, stepsize = 2,
                     alpha = 0.1, ws = tmp, modFUN = "BoxCoxDA", cb = cb,
-                    start_xi = warmstart, lr = 0.05, indep_over_unif = 1e3)
+                    start_xi = warmstart, lr = 0.05, indep_over_unif = 1e3,
+                    verbose = FALSE)
 
   dat$Nonparametric <- c(predict(m0, which = "distribution", type = "distribution"))
   dat$DIVE <- c(predict(m, type = "cdf"))
