@@ -44,7 +44,7 @@ run <- \(iter) {
   cb <- \() list(callback_reduce_lr_on_plateau(
     "loss", factor = 0.9, patience = 20, min_delta = 1e-4),
     callback_early_stopping("loss", patience = 60, min_delta = 1e-4))
-  m <- fit_adaptive(args, epochs = 1e4, max_iter = 10, stepsize = 2,
+  m <- fit_adaptive(args, epochs = 1e4, max_iter = 10, stepsize = 5,
                     alpha = 0.1, ws = tmp, modFUN = "BoxCoxDA", cb = cb,
                     start_xi = warmstart, lr = 0.05, indep_over_unif = 1e3,
                     verbose = FALSE)
