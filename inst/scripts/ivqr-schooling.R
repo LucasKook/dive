@@ -3,6 +3,7 @@ set.seed(12)
 
 library("tidyverse")
 library("ivreg")
+library("IVQR")
 
 data("SchoolingReturns", package = "ivreg")
 SchoolingReturns$wage <- log(SchoolingReturns$wage)
