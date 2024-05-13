@@ -65,8 +65,8 @@ oracle <- Vectorize(\(y, d) d * F1(y) + (1 - d) * F0(y))
 nep <- 1e4
 wep <- 3e3
 rep <- 50
-ords <- c(10, 30, 50)
-lrs <- c(0.01, 0.05, 0.1)
+ords <- 10 # c(10, 30, 50)
+lrs <- 0.05 # c(0.01, 0.05, 0.1)
 ns <- 100 * 2^(0:4)
 
 # FUNs --------------------------------------------------------------------
@@ -105,18 +105,18 @@ res <- lapply(ns, \(tn) {
                        optimizer = optimizer_adam(1e-2))
         fit(mtmp, epochs = wep, validation_split = 0, callbacks = list(
           callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20),
-          callback_early_stopping("loss", patience = 200)), verbose = FALSE)
+          callback_early_stopping("loss", patience = 40)), verbose = FALSE)
         tmp <- get_weights(mtmp$model)
         ### Fit DIVE
         args <- list(formula = Y | D ~ 1, data = dat, anchor = ~ Z,
                      loss = "indep", optimizer = optimizer_adam(tlr),
                      xi = 1, trafo_options = trafo_control(
                        order_bsp = tord, support = supp))
-        cb <- list(callback_reduce_lr_on_plateau("loss", patience = 2e2,
-                                                 factor = 0.9),
-                   callback_early_stopping("loss", patience = 4e2))
-        m <- fit_adaptive(args, nep, callbacks = cb, ws = tmp, modFUN = "ColrDA",
-                          verbose = FALSE)
+        cb <- list(callback_reduce_lr_on_plateau(
+          "loss", patience = 20, factor = 0.9),
+          callback_early_stopping("loss", patience = 60))
+        m <- fit_adaptive(args, nep, callbacks = cb, ws = tmp,
+                          modFUN = "ColrDA", verbose = FALSE)
 
         ### Evaluate
         dat$TRAM <- c(predict(m0, which = "distribution",
