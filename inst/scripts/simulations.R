@@ -48,7 +48,7 @@ dgp <- switch(
     Z <- rlogis(n)
     H <- rlogis(n)
     D <- as.numeric(4 * Z + (1 - do) * 4 * H > rlogis(n))
-    Y <- - 4 * (1 + 3 * D) * H
+    Y <- 4 + (0.5 + D) * H
     data.frame(Y = Y, H = H, D = D, Z = Z)
   }
 )
@@ -60,14 +60,20 @@ F0 <- ecdf(dint$Y[dint$D == 0])
 F1 <- ecdf(dint$Y[dint$D == 1])
 oracle <- Vectorize(\(y, d) d * F1(y) + (1 - d) * F0(y))
 
+# d <- dgp(1e3)
+# plot(d$Y, oracle(d$Y, d$D))
+
 # Params ------------------------------------------------------------------
 
 nep <- 1e4
 wep <- 3e3
 rep <- 50
 ords <- 10 # c(10, 30, 50)
-lrs <- 0.05 # c(0.01, 0.05, 0.1)
 ns <- 100 * 2^(0:4)
+lrs <- 0.1 # c(0.01, 0.05, 0.1)
+alp <- ifelse(scenario == 4, 0.05, 0.1)
+iou <- ifelse(scenario == 4, 10, 1e3)
+tss <- ifelse(scenario == 4, 5, 10)
 
 # FUNs --------------------------------------------------------------------
 
@@ -97,26 +103,27 @@ res <- lapply(ns, \(tn) {
         # print(check_unif_indep(ecdf(dat$Y)(dat$Y), dat$Z))
 
         ### Fit vanilla nonparametric CDF
-        m0 <- Colr(Y | D ~ 1, data = dat, support = supp <- range(dat$Y),
-                   order = tord)
+        m0 <- BoxCox(Y | D ~ 1, data = dat, support = supp <- range(dat$Y),
+                     order = tord)
 
         ### Warmstart with conditional distribution
-        mtmp <- ColrNN(Y | D ~ 1, data = dat, order = tord,
-                       optimizer = optimizer_adam(1e-2))
+        mtmp <- BoxCoxNN(Y | D ~ 1, data = dat, order = tord,
+                         optimizer = optimizer_adam(1e-2))
         fit(mtmp, epochs = wep, validation_split = 0, callbacks = list(
-          callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20),
-          callback_early_stopping("loss", patience = 40)), verbose = FALSE)
+          callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20, min_delta = 1e-3),
+          callback_early_stopping("loss", patience = 60, min_delta = 1e-3)), verbose = FALSE)
         tmp <- get_weights(mtmp$model)
         ### Fit DIVE
         args <- list(formula = Y | D ~ 1, data = dat, anchor = ~ Z,
-                     loss = "indep", optimizer = optimizer_adam(tlr),
-                     xi = 1, trafo_options = trafo_control(
+                     loss = "indep", xi = 1, trafo_options = trafo_control(
                        order_bsp = tord, support = supp))
-        cb <- list(callback_reduce_lr_on_plateau(
-          "loss", patience = 20, factor = 0.9),
-          callback_early_stopping("loss", patience = 60))
-        m <- fit_adaptive(args, nep, callbacks = cb, ws = tmp,
-                          modFUN = "ColrDA", verbose = FALSE)
+        cb <- \() list(callback_reduce_lr_on_plateau(
+          "loss", patience = 20, factor = 0.9, min_delta = 1e-4),
+          callback_early_stopping("loss", patience = 60, min_delta = 1e-4))
+        m <- fit_adaptive(args, nep, max_iter = 10, ws = tmp,
+                          modFUN = "BoxCoxDA", verbose = FALSE, lr = tlr,
+                          cb = cb, start_xi = TRUE, stepsize = tss,
+                          indep_over_unif = iou, alpha = alp)
 
         ### Evaluate
         dat$TRAM <- c(predict(m0, which = "distribution",

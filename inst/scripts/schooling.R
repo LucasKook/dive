@@ -3,7 +3,7 @@
 
 set.seed(12)
 save <- TRUE
-warmstart <- FALSE
+warmstart <- TRUE
 
 # DEPs --------------------------------------------------------------------
 
@@ -29,22 +29,24 @@ run <- \(iter) {
   ### Warmstart model
   tmp <- NULL
   if (warmstart) {
-    mtmp <- BoxCoxNN(wage | smsa ~ 1, data = dat, optimizer = optimizer_adam(1e-2))
+    mtmp <- BoxCoxNN(wage | smsa ~ 1, data = dat,
+                     optimizer = optimizer_adam(1e-2))
     fit(mtmp, epochs = 3e3, validation_split = 0, callbacks = list(
-      callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20),
-      callback_early_stopping("loss", patience = 200)))
+      callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20, min_delta = 1e-3),
+      callback_early_stopping("loss", patience = 40, min_delta = 1e-3)))
     tmp <- get_weights(mtmp$model)
   }
 
   ### DIVE
   args <- list(formula = wage | smsa ~ 1, data = dat, anchor = ~ nearcollege,
-                loss = "indep", optimizer = optimizer_adam(0.05),
+                loss = "indep",
                 order = 10, xi = 1, tf_seed = iter)
-  cb <- list(callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20),
-             callback_early_stopping("loss", patience = 40))
-  m <- fit_adaptive(args, epochs = 1e4, max_iter = 10, stepsize = 2, alpha = 0.1,
-                    ws = tmp, modFUN = "BoxCoxDA", callbacks = cb,
-                    start_xi = warmstart)
+  cb <- \() list(callback_reduce_lr_on_plateau(
+    "loss", factor = 0.9, patience = 20, min_delta = 1e-4),
+    callback_early_stopping("loss", patience = 40, min_delta = 1e-4))
+  m <- fit_adaptive(args, epochs = 1e4, max_iter = 10, stepsize = 2,
+                    alpha = 0.1, ws = tmp, modFUN = "BoxCoxDA", cb = cb,
+                    start_xi = warmstart, lr = 0.05, indep_over_unif = 1e3)
 
   dat$Nonparametric <- c(predict(m0, which = "distribution", type = "distribution"))
   dat$DIVE <- c(predict(m, type = "cdf"))
@@ -68,9 +70,6 @@ pdat <- do.call("rbind", lapply(ret, \(x) x[["pd"]]))
 nd <- do.call("rbind", lapply(ret, \(x) x[["nd"]]))
 
 # Vis ---------------------------------------------------------------------
-
-# pdat <- read_csv("inst/results/figures/schooling-pdat.csv")
-# nd <- read_csv("inst/results/figures/schooling-nd.csv")
 
 p1 <- ggplot(pdat, aes(x = rank, color = nearcollege, linetype = factor(iter))) +
   geom_abline(intercept = 0, slope = 1, linetype = 3, color = "gray40") +
