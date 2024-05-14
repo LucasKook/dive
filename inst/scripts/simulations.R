@@ -92,6 +92,7 @@ res <- lapply(ns, \(tn) {
       pb <- txtProgressBar(min = 0, max = rep, style = 3)
       lapply(seq_len(rep), \(iter) {
         setTxtProgressBar(pb, iter)
+        set.seed(1e4 + iter)
         ### Generate data
         dat <- dgp(tn)
 
@@ -108,7 +109,8 @@ res <- lapply(ns, \(tn) {
 
         ### Warmstart with conditional distribution
         mtmp <- BoxCoxNN(Y | D ~ 1, data = dat, order = tord,
-                         optimizer = optimizer_adam(1e-2))
+                         optimizer = optimizer_adam(1e-2),
+                         tf_seed = iter)
         fit(mtmp, epochs = wep, validation_split = 0, callbacks = list(
           callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20, min_delta = 1e-3),
           callback_early_stopping("loss", patience = 60, min_delta = 1e-3)), verbose = FALSE)
