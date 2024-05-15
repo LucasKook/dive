@@ -34,7 +34,7 @@ indep_unif_loss <- function(m0, m1, Y, D, Z, lam = 1) {
   pit <- dive(Y, D)
   unif <- sum((pit - ecdf(pit)(pit))^2)
   indep <- NROW(Y) * dhsic(list(pit, Z), kernel = c("gaussian", "gaussian"))$dHSIC
-  tibble(unif = unif, indep = indep, loss = max(unif, lam * indep))
+  tibble(unif = unif, indep = indep, loss = sum(unif, lam * indep))
 }
 
 # Plot --------------------------------------------------------------------
