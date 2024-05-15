@@ -6,6 +6,7 @@ set.seed(12)
 ### CLI args
 args <- commandArgs(trailingOnly = TRUE)
 scenario <- if (length(args) != 0) args[1] else 1
+vb <- FALSE
 
 ### File names
 save <- TRUE
@@ -34,7 +35,7 @@ dgp <- switch(
     Z <- rlogis(n)
     H <- rlogis(n)
     D <- as.numeric(4 * Z + (1 - do) * 4 * H > rlogis(n))
-    Y <- 16 * D + 6 * H + 2 * H * rlogis(n)
+    Y <- 16 * D + 6 * H + H * rlogis(n)
     data.frame(Y = Y, H = H, D = D, Z = Z)
   },
   "3" = function(n = 1e2, do = FALSE) {
@@ -48,7 +49,7 @@ dgp <- switch(
     Z <- rlogis(n)
     H <- rlogis(n)
     D <- as.numeric(4 * Z + (1 - do) * 4 * H > rlogis(n))
-    Y <- 4 + (0.5 + D) * H
+    Y <- -6 * D + (6 + 3 * D) * H
     data.frame(Y = Y, H = H, D = D, Z = Z)
   }
 )
@@ -60,20 +61,22 @@ F0 <- ecdf(dint$Y[dint$D == 0])
 F1 <- ecdf(dint$Y[dint$D == 1])
 oracle <- Vectorize(\(y, d) d * F1(y) + (1 - d) * F0(y))
 
-# d <- dgp(1e3)
+# d <- dgp(3e3)
 # plot(d$Y, oracle(d$Y, d$D))
+# plot(ecdf(d$Y[d$D == 0]), add = TRUE)
+# plot(ecdf(d$Y[d$D == 1]), add = TRUE)
 
 # Params ------------------------------------------------------------------
 
-nep <- 1e4
+nep <- 3e3
 wep <- 3e3
-rep <- 50
+rep <- 10
 ords <- 10 # c(10, 30, 50)
-ns <- 100 * 2^(0:4)
+ns <- 1600 # 100 * 2^(0:4)
 lrs <- 0.1 # c(0.01, 0.05, 0.1)
-alp <- ifelse(scenario == 4, 0.05, 0.1)
-iou <- ifelse(scenario == 4, 10, 1e3)
-tss <- ifelse(scenario == 4, 5, 10)
+iou <- 1e3 # rep(c(1e3, 1e5), c(3, 1))[scenario]
+alp <- rep(c(0.1, 0.05), c(3, 1))[scenario]
+tss <- rep(c(10, 5), c(3, 1))[scenario]
 
 # FUNs --------------------------------------------------------------------
 
@@ -113,7 +116,7 @@ res <- lapply(ns, \(tn) {
                          tf_seed = iter)
         fit(mtmp, epochs = wep, validation_split = 0, callbacks = list(
           callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20, min_delta = 1e-3),
-          callback_early_stopping("loss", patience = 60, min_delta = 1e-3)), verbose = FALSE)
+          callback_early_stopping("loss", patience = 60, min_delta = 1e-3)), verbose = vb)
         tmp <- get_weights(mtmp$model)
         ### Fit DIVE
         args <- list(formula = Y | D ~ 1, data = dat, anchor = ~ Z,
@@ -123,7 +126,7 @@ res <- lapply(ns, \(tn) {
           "loss", patience = 20, factor = 0.9, min_delta = 1e-4),
           callback_early_stopping("loss", patience = 60, min_delta = 1e-4))
         m <- fit_adaptive(args, nep, max_iter = 10, ws = tmp,
-                          modFUN = "BoxCoxDA", verbose = FALSE, lr = tlr,
+                          modFUN = "BoxCoxDA", verbose = vb, lr = tlr,
                           cb = cb, start_xi = TRUE, stepsize = tss,
                           indep_over_unif = iou, alpha = alp)
 
