@@ -22,6 +22,7 @@ d401k <- data.frame(
 ) |> filter(y > 0) |> mutate(y = log(y))
 
 run <- \(iter) {
+  cat("\nIteration:", iter)
   set.seed(iter)
   dat <- d401k[sample.int(nrow(d401k), 1e3), ]
   dat$oy <- dat$y

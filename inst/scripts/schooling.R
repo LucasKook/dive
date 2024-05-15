@@ -18,6 +18,7 @@ data("SchoolingReturns", package = "ivreg")
 SchoolingReturns$wage <- log(SchoolingReturns$wage)
 
 run <- \(iter) {
+  cat("\nIteration:", iter)
   set.seed(iter)
   dat <- SchoolingReturns[sample.int(nrow(SchoolingReturns), 1e3), ]
 
