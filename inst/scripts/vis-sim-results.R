@@ -40,4 +40,4 @@ dat |> pivot_longer(CmV:KS, names_to = "metric", values_to = "value") |>
   labs(x = "Sample size", y = "Estimation error")
 
 if (save)
-  ggsave("inst/figures/sim-results.pdf", height = 5, width = 8)
+  ggsave("inst/figures/sim-results.pdf", height = 4, width = 8)

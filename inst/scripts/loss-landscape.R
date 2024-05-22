@@ -41,21 +41,21 @@ indep_unif_loss <- function(m0, m1, Y, D, Z, lam = 1) {
 
 d <- dgp_np(1e2)
 ms <- seq(-3, 3, length.out = 1e2)
-grd <- data.frame(expand.grid(m0 = ms, m1 = ms, lam = 0:2))
+grd <- data.frame(expand.grid(m0 = ms, m1 = ms, lam = c(0.001, 1, 10, 100)))
 loss <- pmap(grd, indep_unif_loss, Y = d$Y, D = d$D, Z = d$Z) |>
   bind_rows()
 pd <- bind_cols(grd, loss)
 
-est <- pd |> group_by(lam) |> slice(which.min(pd$loss)) |> ungroup() |> slice(1)
+est <- pd |> group_by(lam) |> slice(which.min(loss)) |> ungroup()
 
 ggplot(pd, aes(x = m0, y = m1, z = loss)) +
   facet_wrap(~ lam, nrow = 1, labeller = label_bquote(lambda==.(lam))) +
   labs(x = bquote(mu[0]), y = bquote(mu[1])) +
   geom_contour_filled(bins = 30, show.legend = FALSE) +
   annotate("point", x = 0, y = 1, color = "white", size = 3, pch = 4) +
-  annotate("point", x = est$m0, y = est$m1, color = "white", size = 3, pch = 3) +
   annotate("text", x = 0.8, y = 0.8, color = "white", size = 3, label = "ground truth") +
-  annotate("text", x = est$m0 - 0.6, y = est$m1 + 0.2, color = "white", size = 3, label = "estimate") +
+  geom_point(data = est, color = "white", size = 3, pch = 3) +
+  geom_text(data = est, color = "white", size = 3, label = "estimate", nudge_y = 0.3) +
   theme_bw() + theme(text = element_text(size = 13.5))
 
 ggsave("inst/figures/loss-landscape-gaussian.pdf", height = 3.5, width = 12)
