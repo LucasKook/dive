@@ -1,6 +1,9 @@
 ### Visualize rank assumptions in examples
 ### LK 2023
 
+nset <- as.numeric(commandArgs(trailingOnly = TRUE)[1])
+if (is.na(nset)) nset <- 1
+
 set.seed(2410)
 library("tidyverse")
 library("patchwork")
@@ -8,7 +11,7 @@ theme_set(theme_bw() + theme(text = element_text(size = 13.5)))
 
 # DGP ---------------------------------------------------------------------
 
-setting <- c("rinv-violated", "rsim-violated", "cmrs-violated", "intro")[4]
+setting <- c("rinv-violated", "rsim-violated", "cmrs-violated", "intro")[nset]
 if (setting == "cmrs-violated") {
   tg0 <- \(h, ny) h
   tg1 <- \(h, ny) -h

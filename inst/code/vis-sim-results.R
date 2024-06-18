@@ -13,7 +13,7 @@ library("dare")
 
 # Read --------------------------------------------------------------------
 
-odir <- file.path("inst/results/simulations", "2024-05-15")
+odir <- file.path("inst/results/simulations")
 files <- list.files(odir, "*.csv", full.names = TRUE)
 dat <- tibble(path = files) |>
   mutate(data = map(path, ~ read_csv(.x, show_col_types = FALSE))) |>

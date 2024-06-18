@@ -101,6 +101,8 @@ ggpubr::ggarrange(p2, p1, nrow = 1, align = "hv", legend = "top")
 # Save --------------------------------------------------------------------
 
 if (save) {
+  if (!dir.exists("inst/figures"))
+    dir.create("inst/figures", recursive = TRUE)
   write_csv(pdat, "inst/figures/401k-pdat.csv")
   write_csv(nd, "inst/figures/401k-nd.csv")
   ggsave("inst/figures/401k.pdf", height = 3.5, width = 12)

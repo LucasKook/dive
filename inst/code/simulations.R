@@ -10,7 +10,7 @@ vb <- FALSE
 
 ### File names
 save <- TRUE
-odir <- file.path("inst/results/simulations", Sys.Date())
+odir <- file.path("inst/results/simulations")
 fname <- paste0("sim-res-", scenario)
 
 # DEPs --------------------------------------------------------------------
