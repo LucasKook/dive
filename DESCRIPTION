@@ -1,12 +1,12 @@
 Package: dive
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Distributional Instrumental Variable Estimation
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Authors@R: c(person("Lucas", "Kook", email = "lucasheinrich.kook@gmail.com",
+              role = c("aut", "cre"), comment = c(ORCID = "0000-0002-7546-7356")),
+             person("Niklas", "Pfister", role = "ctb"))
+Description: Instrumental variables estimation of distributional causal effects
+    using an independence and uniformity loss.
+License: GPL-3
 Encoding: UTF-8
-LazyData: true
-RoxygenNote: 7.1.2
+RoxygenNote: 7.3.1
