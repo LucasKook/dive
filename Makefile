@@ -14,11 +14,13 @@ run-simulations:
 vis-simulations:
 	Rscript --vanilla inst/code/vis-sim-results.R
 
-figures:
+loss-landscape:
 	Rscript --vanilla inst/code/loss-landscape.R
+
+figures:
 	Rscript --vanilla inst/code/plot-examples.R 1
 	Rscript --vanilla inst/code/plot-examples.R 2
 	Rscript --vanilla inst/code/plot-examples.R 3
 	Rscript --vanilla inst/code/plot-examples.R 4
 
-all: 401k schooling run-simulations vis-simulations figures
+all: 401k schooling run-simulations vis-simulations figures loss-landscape
