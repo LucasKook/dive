@@ -11,12 +11,12 @@ via `tensorflow` and `keras`. The `dare` package can be installed from
 
 # Reproducibility
 
-All results can be reproduced by running `make all` or executing the scripts
-in `./inst/code/` manually following the order in the `Makefile`. The results
-can also be reproduced in parts. For the 401k application, `make 401k`; for
-the schooling application, `make schooling`; for the simulation results,
-`make run-simulations vis-simulations`; and for all other figures use
-`make figures`.
+All results can be reproduced by running `make all` or executing the scripts in
+`./inst/code/` manually following the order in the `Makefile`. The results can
+also be reproduced in parts. For the 401k application, `make 401k`; for the
+schooling application, `make schooling`; for the simulation results, `make
+run-simulations vis-simulations`; Figure 3 can be reproduced with `make
+loss-landscape`; and for all other figures use `make figures`.
 
 # References
 
