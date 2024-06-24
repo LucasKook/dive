@@ -32,7 +32,7 @@ dgp_np <- function(n, g1 = tg1, g0 = tg0, fqH = tqH, intervene = FALSE) {
 indep_unif_loss <- function(m0, m1, Y, D, Z, lam = 1) {
   dive <- Vectorize(\(y, d) pnorm(y, mean = d * m1 + (1 - d) * m0))
   pit <- dive(Y, D)
-  unif <- sum((pit - ecdf(pit)(pit))^2)
+  unif <- goftest::cvm.test(pit)$statistic # sum((pit - ecdf(pit)(pit))^2)
   indep <- NROW(Y) * dhsic(list(pit, Z), kernel = c("gaussian", "gaussian"))$dHSIC
   tibble(unif = unif, indep = indep, loss = sum(unif, lam * indep))
 }
