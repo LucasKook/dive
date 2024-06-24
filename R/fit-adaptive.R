@@ -11,10 +11,11 @@ fit_adaptive <- function(
       set_weights(mod$model, ws)
     ### Initialize lambda s.t. weighting is equal
     iPIT <- predict(mod, type = "cdf")
-    cmv <- mean((iPIT - ecdf(iPIT)(iPIT))^2)
+    # cvm <- mean((iPIT - ecdf(iPIT)(iPIT))^2)
+    cvm <- goftest::cvm.test(iPIT)$statistic / NROW(iPIT)
     Z <- dare:::.rm_int(model.matrix(args$anchor, data = args$data))
     hsic <- dHSIC::dhsic.test(iPIT, Z, method = "gamma")$statistic
-    xi_start <- indep_over_unif * (cmv / hsic)
+    xi_start <- indep_over_unif * (cvm / hsic)
     args$xi <- xi_start
     cat("\nInitializing xi =", round(xi_start, 3), "\n")
   }
@@ -29,7 +30,8 @@ fit_adaptive <- function(
     fit(mod, epochs = epochs, callbacks = cb(), ...)
     ### Check if uniform and independent
     iPIT <- predict(mod, type = "cdf")
-    unif <- ks.test(iPIT, "punif")$p.value
+    # unif <- ks.test(iPIT, "punif")$p.value
+    unif <- goftest::cvm.test(iPIT)$p.value
     Z <- dare:::.rm_int(model.matrix(args$anchor, data = args$data))
     indep <- dHSIC::dhsic.test(iPIT, Z, method = "gamma")$p.value
     ### Return or update lambda and restart
