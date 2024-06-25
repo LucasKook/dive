@@ -8,6 +8,12 @@ schooling:
 	Rscript --vanilla inst/code/schooling-comparison.R
 	Rscript --vanilla inst/code/ivqr-schooling.R
 
+max:
+	Rscript --vanilla inst/code/schooling.R 2
+	Rscript --vanilla inst/code/ivqr-schooling.R 2
+	Rscript --vanilla inst/code/401k.R 2
+	Rscript --vanilla inst/code/401k-comparison.R 2
+
 run-simulations:
 	Rscript --vanilla inst/code/simulations.R
 
@@ -24,3 +30,7 @@ figures:
 	Rscript --vanilla inst/code/plot-examples.R 4
 
 all: 401k schooling run-simulations vis-simulations figures loss-landscape
+
+clean:
+	rm Rplots.pdf
+

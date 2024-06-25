@@ -1,6 +1,9 @@
 ### 401(k) DIVE
 ### LK 2024
 
+waggr <- as.numeric(commandArgs(TRUE)[1])
+if (is.na(waggr)) waggr <- 1
+
 set.seed(12)
 save <- TRUE
 
@@ -14,6 +17,7 @@ library("dare")
 # Data --------------------------------------------------------------------
 
 raw <- read_csv("inst/data/401k.csv")
+taggr <- c("k_sum", "k_max")[waggr]
 
 d401k <- data.frame(
   y = raw$net_tfa / 1e3,
@@ -41,7 +45,7 @@ run <- \(iter) {
   tmp <- get_weights(mtmp$model)
 
   args <- list(formula = oy | d ~ 1, data = dat, anchor = ~ z, loss = "indep",
-               xi = 1/3, tf_seed = iter, order = 20)
+               xi = 1/3, tf_seed = iter, order = 20, aggr = taggr)
   cb <- \() list(callback_reduce_lr_on_plateau(
     "loss", patience = 2e1, factor = 0.9, min_delta = 1e-4),
     callback_early_stopping("loss", patience = 60, min_delta = 1e-4))
@@ -73,37 +77,14 @@ ret <- lapply(seq_len(nsim), run)
 pdat <- do.call("rbind", lapply(ret, \(x) x[["pd"]]))
 nd <- do.call("rbind", lapply(ret, \(x) x[["nd"]]))
 
-# Vis ---------------------------------------------------------------------
-
-p1 <- ggplot(pdat, aes(x = rank, color = factor(z), linetype = factor(iter))) +
-  geom_abline(intercept = 0, slope = 1, linetype = 3, color = "gray40") +
-  facet_wrap(~ model) +
-  stat_ecdf(alpha = 0.5) +
-  scale_color_brewer(palette = "Dark2") +
-  labs(x = "Estimated iPIT", y = "ECDF", color = "401(k) eligibility") +
-  theme_bw() +
-  theme(text = element_text(size = 13.5)) +
-  guides(linetype = "none")
-
-p2 <- nd |>
-  pivot_longer(Nonparametric:DIVE, names_to = "model", values_to = "cdf") |>
-  ggplot(aes(x = y, y = cdf, color = factor(d), linetype = factor(iter))) +
-  facet_wrap(~ model) +
-  geom_line(alpha = 0.5) +
-  labs(x = "Net total financial assets", y = "Estimated CDF", color = "401(k) participation") +
-  theme_bw() +
-  theme(text = element_text(size = 13.5)) +
-  scale_color_manual(values = colorspace::diverge_hcl(2)) +
-  guides(linetype = "none")
-
-ggpubr::ggarrange(p2, p1, nrow = 1, align = "hv", legend = "top")
-
 # Save --------------------------------------------------------------------
 
 if (save) {
   if (!dir.exists("inst/figures"))
     dir.create("inst/figures", recursive = TRUE)
-  write_csv(pdat, "inst/figures/401k-pdat.csv")
-  write_csv(nd, "inst/figures/401k-nd.csv")
-  ggsave("inst/figures/401k.pdf", height = 3.5, width = 12)
+  bp <- file.path("inst", "figures")
+  pa1 <- file.path(bp, paste0("401k", ifelse(waggr == 2, "-max", ""), "-pdat.csv"))
+  pa2 <- file.path(bp, paste0("401k", ifelse(waggr == 2, "-max", ""), "-nd.csv"))
+  write_csv(pdat, pa1)
+  write_csv(nd, pa2)
 }

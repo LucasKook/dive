@@ -1,6 +1,9 @@
 ### Return to schooling application
 ### LK 2023
 
+waggr <- as.numeric(commandArgs(TRUE)[1])
+if (is.na(waggr)) waggr <- 1
+
 set.seed(12)
 save <- TRUE
 warmstart <- TRUE
@@ -16,6 +19,7 @@ library("dare")
 
 data("SchoolingReturns", package = "ivreg")
 SchoolingReturns$wage <- log(SchoolingReturns$wage)
+taggr <- c("k_sum", "k_max")[waggr]
 
 run <- \(iter) {
   cat("\nIteration:", iter)
@@ -40,8 +44,8 @@ run <- \(iter) {
 
   ### DIVE
   args <- list(formula = wage | smsa ~ 1, data = dat, anchor = ~ nearcollege,
-                loss = "indep",
-                order = 10, xi = 1, tf_seed = iter)
+               loss = "indep",
+               order = 10, xi = 1, tf_seed = iter, aggr = taggr)
   cb <- \() list(callback_reduce_lr_on_plateau(
     "loss", factor = 0.9, patience = 20, min_delta = 1e-4),
     callback_early_stopping("loss", patience = 60, min_delta = 1e-4))
@@ -71,35 +75,16 @@ ret <- lapply(seq_len(nsim), run)
 pdat <- do.call("rbind", lapply(ret, \(x) x[["pd"]]))
 nd <- do.call("rbind", lapply(ret, \(x) x[["nd"]]))
 
-# Vis ---------------------------------------------------------------------
-
-p1 <- ggplot(pdat, aes(x = rank, color = nearcollege, linetype = factor(iter))) +
-  geom_abline(intercept = 0, slope = 1, linetype = 3, color = "gray40") +
-  facet_wrap(~ model) +
-  stat_ecdf(alpha = 0.5) +
-  scale_color_brewer(palette = "Dark2") +
-  labs(x = "Estimated iPIT", y = "ECDF", color = "Near college") +
-  theme_bw() +
-  theme(text = element_text(size = 13.5)) +
-  guides(linetype = "none")
-
-p2 <- ggplot(
-  nd |> pivot_longer(Nonparametric:DIVE, names_to = "model", values_to = "cdf"),
-  aes(x = wage, y = cdf, color = smsa, linetype = factor(iter))) +
-  facet_wrap(~ model) +
-  geom_line(alpha = 0.5) +
-  labs(x = "log(wage)", y = "Estimated CDF", color = "Metropolitan area") +
-  theme_bw() +
-  theme(text = element_text(size = 13.5)) +
-  scale_color_manual(values = colorspace::diverge_hcl(2)) +
-  guides(linetype = "none")
-
-ggpubr::ggarrange(p2, p1, nrow = 1, align = "hv", legend = "top")
-
 # Save --------------------------------------------------------------------
 
 if (save) {
-  write_csv(pdat, "inst/figures/schooling-pdat.csv")
-  write_csv(nd, "inst/figures/schooling-nd.csv")
-  ggsave("inst/figures/schooling.pdf", height = 3.5, width = 12)
+  if (!dir.exists("inst/figures"))
+    dir.create("inst/figures", recursive = TRUE)
+  bp <- file.path("inst", "figures")
+  pa1 <- file.path(bp, paste0("schooling", ifelse(waggr == 2, "max", ""),
+                              "-pdat.csv"))
+  pa2 <- file.path(bp, paste0("schooling", ifelse(waggr == 2, "max", ""),
+                              "-nd.csv"))
+  write_csv(pdat, pa1)
+  write_csv(nd, pa2)
 }

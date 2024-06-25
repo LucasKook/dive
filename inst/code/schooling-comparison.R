@@ -1,4 +1,7 @@
 
+waggr <- as.numeric(commandArgs(TRUE)[1])
+if (is.na(waggr)) waggr <- 1
+
 set.seed(12)
 
 library("tidyverse")
@@ -14,8 +17,11 @@ res <- do.call("rbind", lapply(1:50, \(iter) {
   c("OLS" = unname(coef(lm)[2]), "2SLS" = unname(coef(iv)[2]))
 })) |> as.data.frame()
 
-nd <- read_csv("inst/results/figures/schooling-nd.csv")
-pdat <- read_csv("inst/results/figures/schooling-pdat.csv") |>
+itr <- ifelse(waggr == 2, "-max", "")
+pa1 <- paste0("inst/results/figures/schooling", itr, "-nd.csv")
+pa2 <- paste0("inst/results/figures/schooling", itr, "-pdat.csv")
+nd <- read_csv(pa1)
+pdat <- read_csv(pa2) |>
   mutate(model = factor(model, levels = c("DIVE", "Nonparametric"),
                         labels = c("DIVE", "CCDF")))
 
@@ -90,4 +96,5 @@ p3 <- nd |>
 ggpubr::ggarrange(p2 + labs(tag = "A"), p1 + labs(tag = "B"),
                   p3 + labs(tag = "C"), p0 + labs(tag = "D"),
                   nrow = 2, ncol = 2, legend = "top", heights = c(0.53, 0.47))
-ggsave("inst/figures/schooling-comparison.pdf", height = 7, width = 12)
+pa3 <- paste0("inst/figures/schooling-comparison", itr, ".pdf")
+ggsave(pa3, height = 7, width = 12)
