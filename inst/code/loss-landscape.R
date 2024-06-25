@@ -58,4 +58,4 @@ ggplot(pd, aes(x = m0, y = m1, z = loss)) +
   geom_text(data = est, color = "white", size = 3, label = "estimate", nudge_y = 0.3) +
   theme_bw() + theme(text = element_text(size = 13.5))
 
-ggsave("inst/figures/loss-landscape-gaussian.pdf", height = 3.5, width = 12)
+ggsave("inst/figures/loss-landscape-gaussian.pdf", height = 3, width = 10)
