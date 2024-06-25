@@ -49,6 +49,7 @@ pd <- nd |>
   select(ntau, iter, method, qte)
 
 bind_rows(res, pd) |>
+  filter(method %in% c("DIVE", "IVQR")) |>
   ggplot(aes(x = ntau, y = qte, color = method, group = interaction(method, iter))) +
   geom_line(alpha = 0.4) +
   labs(x = bquote(tau), y = "Estimated QCE", color = "Estimator") +
