@@ -29,7 +29,7 @@ figures:
 	Rscript --vanilla inst/code/plot-examples.R 3
 	Rscript --vanilla inst/code/plot-examples.R 4
 
-all: 401k schooling run-simulations vis-simulations figures loss-landscape
+all: 401k schooling run-simulations vis-simulations figures loss-landscape max
 
 clean:
 	rm Rplots.pdf
