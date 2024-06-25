@@ -32,8 +32,8 @@ dgp_np <- function(n, g1 = tg1, g0 = tg0, fqH = tqH, intervene = FALSE) {
 indep_unif_loss <- function(m0, m1, Y, D, Z, lam = 1) {
   dive <- Vectorize(\(y, d) pnorm(y, mean = d * m1 + (1 - d) * m0))
   pit <- dive(Y, D)
-  unif <- goftest::cvm.test(pit)$statistic # sum((pit - ecdf(pit)(pit))^2)
-  indep <- NROW(Y) * dhsic(list(pit, Z), kernel = c("gaussian", "gaussian"))$dHSIC
+  unif <- goftest::cvm.test(pit)$statistic / NROW(Y) # sum((pit - ecdf(pit)(pit))^2)
+  indep <- NROW(Y) * dhsic(list(qnorm(pit), Z), kernel = c("gaussian", "gaussian"))$dHSIC
   tibble(unif = unif, indep = indep, loss = sum(unif, lam * indep))
 }
 
@@ -41,7 +41,7 @@ indep_unif_loss <- function(m0, m1, Y, D, Z, lam = 1) {
 
 d <- dgp_np(1e2)
 ms <- seq(-3, 3, length.out = 1e2)
-grd <- data.frame(expand.grid(m0 = ms, m1 = ms, lam = c(0.001, 1, 10, 100)))
+grd <- data.frame(expand.grid(m0 = ms, m1 = ms, lam = c(0.01, 0.1, 1)))
 loss <- pmap(grd, indep_unif_loss, Y = d$Y, D = d$D, Z = d$Z) |>
   bind_rows()
 pd <- bind_cols(grd, loss)
