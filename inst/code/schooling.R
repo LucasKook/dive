@@ -78,9 +78,9 @@ nd <- do.call("rbind", lapply(ret, \(x) x[["nd"]]))
 # Save --------------------------------------------------------------------
 
 if (save) {
-  if (!dir.exists("inst/figures"))
-    dir.create("inst/figures", recursive = TRUE)
-  bp <- file.path("inst", "figures")
+  bp <- file.path("inst", "results", "figures")
+  if (!dir.exists(bp))
+    dir.create(bp, recursive = TRUE)
   pa1 <- file.path(bp, paste0("schooling", ifelse(waggr == 2, "max", ""),
                               "-pdat.csv"))
   pa2 <- file.path(bp, paste0("schooling", ifelse(waggr == 2, "max", ""),
