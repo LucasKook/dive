@@ -81,9 +81,9 @@ if (save) {
   bp <- file.path("inst", "results", "figures")
   if (!dir.exists(bp))
     dir.create(bp, recursive = TRUE)
-  pa1 <- file.path(bp, paste0("schooling", ifelse(waggr == 2, "max", ""),
+  pa1 <- file.path(bp, paste0("schooling", ifelse(waggr == 2, "-max", ""),
                               "-pdat.csv"))
-  pa2 <- file.path(bp, paste0("schooling", ifelse(waggr == 2, "max", ""),
+  pa2 <- file.path(bp, paste0("schooling", ifelse(waggr == 2, "-max", ""),
                               "-nd.csv"))
   write_csv(pdat, pa1)
   write_csv(nd, pa2)
