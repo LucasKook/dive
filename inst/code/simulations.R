@@ -71,12 +71,12 @@ oracle <- Vectorize(\(y, d) d * F1(y) + (1 - d) * F0(y))
 nep <- 3e3
 wep <- 3e3
 rep <- 50
-ords <- 10 # c(10, 30, 50)
+ords <- 10
 ns <- 100 * 2^(0:4)
-lrs <- 0.1 # c(0.01, 0.05, 0.1)
-iou <- 1e3 # rep(c(1e3, 1e5), c(3, 1))[scenario]
-alp <- 0.1 # rep(c(0.1, 0.05), c(3, 1))[scenario]
-tss <- 10 # rep(c(10, 5), c(3, 1))[scenario]
+lrs <- 0.1
+iou <- 1
+alp <- 0.1
+tss <- 10
 
 # FUNs --------------------------------------------------------------------
 
