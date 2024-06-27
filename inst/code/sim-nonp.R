@@ -71,7 +71,7 @@ oracle <- Vectorize(\(y, d) d * F1(y) + (1 - d) * F0(y))
 nep <- 3e3
 wep <- 3e3
 rep <- 50
-ns <- 100 * 2^(0:4)
+ns <- 100 * 2^(0:3)
 lrs <- 0.01
 iou <- 1
 alp <- 0.1
