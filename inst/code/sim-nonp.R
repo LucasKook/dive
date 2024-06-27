@@ -160,5 +160,4 @@ if (save) {
   if (!dir.exists(odir))
     dir.create(odir, recursive = TRUE)
   write_csv(res, file.path(odir, paste0(fname, ".csv")))
-  ggsave(file.path(odir, paste0(fname, ".pdf")))
 }
