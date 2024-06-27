@@ -138,8 +138,8 @@ res <- lapply(ns, \(tn) {
         dat |> pivot_longer(TRAM:DIVE, names_to = "method",
                             values_to = "cdf") |>
           group_by(method) |>
-          summarize(CvM = mean((ORACLE - cdf)^2),
-                    KS = max(abs(ORACLE - cdf))) |>
+          summarize(MSE = mean((ORACLE - cdf)^2),
+                    MAE = max(abs(ORACLE - cdf))) |>
           mutate(n = tn, order = tord, lr = tlr, iter = iter)
       }) |> bind_rows()
     }) |> bind_rows()
@@ -148,7 +148,7 @@ res <- lapply(ns, \(tn) {
 
 # Vis ---------------------------------------------------------------------
 
-res |> pivot_longer(CvM:KS, names_to = "metric", values_to = "value") |>
+res |> pivot_longer(MSE:MAE, names_to = "metric", values_to = "value") |>
   ggplot(aes(x = ordered(n), y = value, fill = method)) +
   facet_wrap(~ metric) +
   geom_boxplot() +

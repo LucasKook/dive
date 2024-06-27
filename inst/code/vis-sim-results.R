@@ -25,7 +25,7 @@ dat <- tibble(path = files) |>
     str_detect(path, "res-4") ~ "Scenario 4"
   ), method = factor(method, levels = c("DIVE", "TRAM"), labels = c("DIVE", "CCDF")))
 
-dat |> pivot_longer(CvM:KS, names_to = "metric", values_to = "value") |>
+dat |> pivot_longer(MSE:MAE, names_to = "metric", values_to = "value") |>
   ggplot(aes(x = n, y = value, color = method, group = interaction(n, method))) +
   facet_grid(metric ~ path, scales = "free") +
   geom_boxplot(outlier.shape = NA, position = position_dodge(0.08)) +
