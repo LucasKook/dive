@@ -81,7 +81,7 @@ pcmrs <- ggplot(pd |> pivot_longer(R0:R1), aes(x = qH, y = value, color = name))
 punif <- ggplot(pd, aes(x = W)) +
   stat_ecdf() +
   geom_abline(intercept = 0, slope = 1) +
-  labs(y = "ECDF", x = "Interventional PIT")
+  labs(y = "ECDF", x = "iPIT residual")
 
 (pri + labs(tag = "A", subtitle = "Rank invariance")) +
   (prs + labs(tag = "B", subtitle = "Rank similarity")) +

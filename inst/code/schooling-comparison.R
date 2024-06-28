@@ -53,7 +53,7 @@ p0 <- ggplot(pd, aes(x = mest, y = model, xmin = mest - sd, xmax = mest + sd)) +
   geom_pointrange() +
   theme_bw() +
   geom_vline(xintercept = 0, linetype = 2, alpha = 0.5) +
-  labs(y = element_blank(), x = "Estimated average causal effect") +
+  labs(y = element_blank(), x = "Average causal effect") +
   theme(text = element_text(size = 13.5))
 
 p1 <- ggplot(pdat, aes(x = rank, color = nearcollege, group = interaction(nearcollege, iter))) +
@@ -61,7 +61,7 @@ p1 <- ggplot(pdat, aes(x = rank, color = nearcollege, group = interaction(nearco
   facet_wrap(~ model) +
   stat_ecdf(alpha = 0.2) +
   scale_color_brewer(palette = "Dark2") +
-  labs(x = "Estimated iPIT residual", y = "ECDF", color = "Near college") +
+  labs(x = "iPIT residual", y = "ECDF", color = "Near college") +
   theme_bw() +
   theme(text = element_text(size = 13.5)) +
   guides(linetype = "none")
@@ -73,7 +73,7 @@ p2 <- ggplot(
   aes(x = wage, y = cdf, color = smsa, group = interaction(smsa, iter))) +
   facet_wrap(~ model) +
   geom_line(alpha = 0.2) +
-  labs(x = "Log-transformed wage ", y = "Estimated CDF", color = "Metropolitan area") +
+  labs(x = "Log-transformed wage ", y = "CDF", color = "Metropolitan area") +
   theme_bw() +
   theme(text = element_text(size = 13.5)) +
   scale_color_manual(values = colorspace::diverge_hcl(2)) +
@@ -88,7 +88,7 @@ p3 <- nd |>
   ggplot(aes(x = wage, y = dce, group = interaction(model, iter))) +
   facet_wrap(~ model) +
   geom_line(alpha = 0.3) +
-  labs(x = "Log-transformed wage", y = "Estimated DCE", color = "Model") +
+  labs(x = "Log-transformed wage", y = "DCE", color = "Model") +
   theme_bw() +
   theme(text = element_text(size = 13.5)) +
   scale_color_manual(values = colorspace::diverge_hcl(2))

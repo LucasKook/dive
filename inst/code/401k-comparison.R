@@ -59,7 +59,7 @@ p0 <- ggplot(pd, aes(x = mest, y = model, xmin = mest - sd, xmax = mest + sd)) +
   geom_pointrange() +
   theme_bw() +
   geom_vline(xintercept = 0, linetype = 2, alpha = 0.5) +
-  labs(y = element_blank(), x = "Estimated average causal effect") +
+  labs(y = element_blank(), x = "Average causal effect") +
   theme(text = element_text(size = 13.5))
 
 p1 <- ggplot(pdat, aes(x = rank, color = factor(z), group = interaction(z, iter))) +
@@ -67,7 +67,7 @@ p1 <- ggplot(pdat, aes(x = rank, color = factor(z), group = interaction(z, iter)
   facet_wrap(~ model) +
   stat_ecdf(alpha = 0.5) +
   scale_color_brewer(palette = "Dark2") +
-  labs(x = "Estimated iPIT residual", y = "ECDF", color = "401(k) eligibility") +
+  labs(x = "iPIT residual", y = "ECDF", color = "401(k) eligibility") +
   theme_bw() +
   theme(text = element_text(size = 13.5))
 
@@ -79,7 +79,7 @@ p2 <- nd |>
   facet_wrap(~ model) +
   geom_line(alpha = 0.5) +
   labs(x = "Log-transformed net total financial assets",
-       y = "Estimated CDF", color = "401(k) participation") +
+       y = "CDF", color = "401(k) participation") +
   theme_bw() +
   theme(text = element_text(size = 13.5)) +
   scale_color_manual(values = colorspace::diverge_hcl(2))
@@ -94,7 +94,7 @@ p3 <- nd |>
   facet_wrap(~ model) +
   geom_line(alpha = 0.3) +
   labs(x = "Log-transformed net total financial assets",
-       y = "Estimated DCE", color = "Model") +
+       y = "DCE", color = "Model") +
   theme_bw() +
   theme(text = element_text(size = 13.5)) +
   scale_color_manual(values = colorspace::diverge_hcl(2))
