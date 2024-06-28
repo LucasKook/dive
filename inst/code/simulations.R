@@ -71,9 +71,8 @@ oracle <- Vectorize(\(y, d) d * F1(y) + (1 - d) * F0(y))
 nep <- 3e3
 wep <- 3e3
 rep <- 50
-ords <- 50
 ns <- 100 * 2^(0:4)
-lrs <- 0.1
+tlr <- 0.1
 iou <- 1
 alp <- 0.1
 tss <- 10
@@ -89,60 +88,57 @@ check_unif_indep <- function(iPIT, Z) {
 # Run ---------------------------------------------------------------------
 
 res <- lapply(ns, \(tn) {
-  lapply(ords, \(tord) {
-    lapply(lrs, \(tlr) {
-      cat("\nRunning with n =", tn, ", order =", tord, ", lr =", tlr, "\n")
-      pb <- txtProgressBar(min = 0, max = rep, style = 3)
-      lapply(seq_len(rep), \(iter) {
-        setTxtProgressBar(pb, iter)
-        set.seed(1e4 + iter)
-        ### Generate data
-        dat <- dgp(tn)
+  cat("\nRunning with n =", tn, "\n")
+  tord <- ceiling(sqrt(tn))
+  pb <- txtProgressBar(min = 0, max = rep, style = 3)
+  lapply(seq_len(rep), \(iter) {
+    setTxtProgressBar(pb, iter)
+    set.seed(1e4 + iter)
+    ### Generate data
+    dat <- dgp(tn)
 
-        ### Compute oracle interventional CDF
-        dat$ORACLE <- oracle(dat$Y, dat$D)
+    ### Compute oracle interventional CDF
+    dat$ORACLE <- oracle(dat$Y, dat$D)
 
-        ### Checks
-        # print(check_unif_indep(dat$ORACLE, dat$Z))
-        # print(check_unif_indep(ecdf(dat$Y)(dat$Y), dat$Z))
+    ### Checks
+    # print(check_unif_indep(dat$ORACLE, dat$Z))
+    # print(check_unif_indep(ecdf(dat$Y)(dat$Y), dat$Z))
 
-        ### Fit vanilla nonparametric CDF
-        m0 <- BoxCox(Y | D ~ 1, data = dat, support = supp <- range(dat$Y),
-                     order = tord)
+    ### Fit vanilla nonparametric CDF
+    m0 <- BoxCox(Y | D ~ 1, data = dat, support = supp <- range(dat$Y),
+                 order = tord)
 
-        ### Warmstart with conditional distribution
-        mtmp <- BoxCoxNN(Y | D ~ 1, data = dat, order = tord,
-                         optimizer = optimizer_adam(1e-2),
-                         tf_seed = iter)
-        fit(mtmp, epochs = wep, validation_split = 0, callbacks = list(
-          callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20, min_delta = 1e-3),
-          callback_early_stopping("loss", patience = 60, min_delta = 1e-3)), verbose = vb)
-        tmp <- get_weights(mtmp$model)
-        ### Fit DIVE
-        args <- list(formula = Y | D ~ 1, data = dat, anchor = ~ Z,
-                     loss = "indep", xi = 1, trafo_options = trafo_control(
-                       order_bsp = tord, support = supp))
-        cb <- \() list(callback_reduce_lr_on_plateau(
-          "loss", patience = 20, factor = 0.9, min_delta = 1e-4),
-          callback_early_stopping("loss", patience = 60, min_delta = 1e-4))
-        m <- fit_adaptive(args, nep, max_iter = 10, ws = tmp,
-                          modFUN = "BoxCoxDA", verbose = vb, lr = tlr,
-                          cb = cb, start_xi = TRUE, stepsize = tss,
-                          indep_over_unif = iou, alpha = alp)
+    ### Warmstart with conditional distribution
+    mtmp <- BoxCoxNN(Y | D ~ 1, data = dat, order = tord,
+                     optimizer = optimizer_adam(1e-2),
+                     tf_seed = iter)
+    fit(mtmp, epochs = wep, validation_split = 0, callbacks = list(
+      callback_reduce_lr_on_plateau("loss", factor = 0.9, patience = 20, min_delta = 1e-3),
+      callback_early_stopping("loss", patience = 60, min_delta = 1e-3)), verbose = vb)
+    tmp <- get_weights(mtmp$model)
+    ### Fit DIVE
+    args <- list(formula = Y | D ~ 1, data = dat, anchor = ~ Z,
+                 loss = "indep", xi = 1, trafo_options = trafo_control(
+                   order_bsp = tord, support = supp))
+    cb <- \() list(callback_reduce_lr_on_plateau(
+      "loss", patience = 20, factor = 0.9, min_delta = 1e-4),
+      callback_early_stopping("loss", patience = 60, min_delta = 1e-4))
+    m <- fit_adaptive(args, nep, max_iter = 10, ws = tmp,
+                      modFUN = "BoxCoxDA", verbose = vb, lr = tlr,
+                      cb = cb, start_xi = TRUE, stepsize = tss,
+                      indep_over_unif = iou, alpha = alp)
 
-        ### Evaluate
-        dat$TRAM <- c(predict(m0, which = "distribution",
-                              type = "distribution"))
-        dat$DIVE <- c(predict(m, type = "cdf"))
+    ### Evaluate
+    dat$TRAM <- c(predict(m0, which = "distribution",
+                          type = "distribution"))
+    dat$DIVE <- c(predict(m, type = "cdf"))
 
-        dat |> pivot_longer(TRAM:DIVE, names_to = "method",
-                            values_to = "cdf") |>
-          group_by(method) |>
-          summarize(MSE = mean((ORACLE - cdf)^2),
-                    MAE = max(abs(ORACLE - cdf))) |>
-          mutate(n = tn, order = tord, lr = tlr, iter = iter)
-      }) |> bind_rows()
-    }) |> bind_rows()
+    dat |> pivot_longer(TRAM:DIVE, names_to = "method",
+                        values_to = "cdf") |>
+      group_by(method) |>
+      summarize(MSE = mean((ORACLE - cdf)^2),
+                MAE = max(abs(ORACLE - cdf))) |>
+      mutate(n = tn, order = tord, lr = tlr, iter = iter)
   }) |> bind_rows()
 }) |> bind_rows()
 
