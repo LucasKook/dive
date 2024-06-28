@@ -85,7 +85,7 @@ punif <- ggplot(pd, aes(x = W)) +
 
 (pri + labs(tag = "A", subtitle = "Rank invariance")) +
   (prs + labs(tag = "B", subtitle = "Rank similarity")) +
-  (pcmrs + labs(tag = "C", subtitle = "Conditional mean\nrank similarity")) +
+  (pcmrs + labs(tag = "C", subtitle = "Conditional rank\nsimilarity")) +
   (punif + labs(tag = "D", subtitle = "Uniformity condition")) +
   plot_layout(nrow = 1, guides = "collect")
 
