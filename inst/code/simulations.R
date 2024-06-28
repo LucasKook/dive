@@ -73,6 +73,7 @@ wep <- 3e3
 rep <- 50
 ns <- 100 * 2^(0:4)
 tlr <- 0.1
+tord <- 50
 iou <- 1
 alp <- 0.1
 tss <- 10
@@ -89,7 +90,6 @@ check_unif_indep <- function(iPIT, Z) {
 
 res <- lapply(ns, \(tn) {
   cat("\nRunning with n =", tn, "\n")
-  tord <- ceiling(sqrt(tn))
   pb <- txtProgressBar(min = 0, max = rep, style = 3)
   lapply(seq_len(rep), \(iter) {
     setTxtProgressBar(pb, iter)
