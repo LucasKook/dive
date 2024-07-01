@@ -21,5 +21,5 @@ loss-landscape`; and for all other figures use `make figures`.
 # References
 
 [1] Kook, L., & Pfister, N. (2024). Instrumental Variable Estimation of
-Distributional Causal Effects. arXiv preprint arXiv:XXXX.XXXXX.
-[doi:10.48550/arXiv.XXXX.XXXXX](https://doi.org/10.48550/arXiv.XXXX.XXXXX).
+Distributional Causal Effects. arXiv preprint arXiv:2406.19986.
+[doi:10.48550/arXiv.2406.19986](https://doi.org/10.48550/arXiv.2406.19986).
