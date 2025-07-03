@@ -86,6 +86,7 @@ check_unif_indep <- function(iPIT, Z) {
 
 # Run ---------------------------------------------------------------------
 
+full_dat <- dgp(1e4)
 res <- lapply(ns, \(tn) {
   cat("\nRunning with n =", tn, "\n")
   pb <- txtProgressBar(min = 0, max = rep, style = 3, width = 60)
@@ -93,7 +94,8 @@ res <- lapply(ns, \(tn) {
     setTxtProgressBar(pb, iter)
     set.seed(1e4 + iter)
     ### Generate data
-    dat <- dgp(tn)
+    idx <- sample.int(NROW(full_dat), tn)
+    dat <- full_dat[idx, ]
 
     ### Compute oracle interventional CDF
     dat$ORACLE <- oracle(dat$Y, dat$D)
@@ -145,7 +147,7 @@ res <- lapply(ns, \(tn) {
     ))
     nd$DIVE <- c(predict(m, type = "cdf", newdata = nd))
 
-    dat |>
+    nd |>
       pivot_longer(TRAM:DIVE,
         names_to = "method",
         values_to = "cdf"
