@@ -159,17 +159,14 @@ res <- lapply(ns, \(tn) {
   }) |> bind_rows()
 }) |> bind_rows()
 
-pd <- res |>
+out <- res |>
   group_by(Y, D, n, order, lr, method, scenario, run) |>
   summarize(
     lwr = quantile(cdf, 0.1),
     med = quantile(cdf, 0.5),
-    upr = quantile(cdf, 0.9)
+    upr = quantile(cdf, 0.9),
+    ORACLE = median(ORACLE)
   )
-
-merged <- left_join(pd, res |> select(Y, D, n, order, lr, ORACLE),
-  by = c("Y", "D", "n", "order", "lr")
-)
 
 # Save --------------------------------------------------------------------
 
@@ -177,5 +174,5 @@ if (save) {
   if (!dir.exists(odir)) {
     dir.create(odir, recursive = TRUE)
   }
-  write_csv(merged, file.path(odir, paste0(fname, ".csv")))
+  write_csv(out, file.path(odir, paste0(fname, ".csv")))
 }
