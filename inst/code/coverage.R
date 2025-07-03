@@ -6,7 +6,7 @@ set.seed(12)
 ### CLI args
 args <- commandArgs(trailingOnly = TRUE)
 scenario <- if (length(args) != 0) args[1] else 1
-run <- if (length(args) != 0) args[2] else 1
+run <- if (length(args) != 0) as.numeric(args[2]) else 1
 vb <- FALSE
 
 ### File names
