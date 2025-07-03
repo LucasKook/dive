@@ -155,12 +155,12 @@ res <- lapply(ns, \(tn) {
         names_to = "method",
         values_to = "cdf"
       ) |>
-      mutate(n = tn, order = tord, lr = tlr, iter = iter, scenario = scenario)
+      mutate(n = tn, order = tord, lr = tlr, iter = iter, scenario = scenario, run = run)
   }) |> bind_rows()
 }) |> bind_rows()
 
 pd <- res |>
-  group_by(Y, D, n, order, lr, method) |>
+  group_by(Y, D, n, order, lr, method, scenario, run) |>
   summarize(
     lwr = quantile(cdf, 0.1),
     med = quantile(cdf, 0.5),
