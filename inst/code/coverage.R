@@ -6,12 +6,13 @@ set.seed(12)
 ### CLI args
 args <- commandArgs(trailingOnly = TRUE)
 scenario <- if (length(args) != 0) args[1] else 1
+run <- if (length(args) != 0) args[2] else 1
 vb <- FALSE
 
 ### File names
 save <- TRUE
 odir <- file.path("inst/results/coverage")
-fname <- paste0("sim-res-", scenario)
+fname <- paste0("sim-res-", scenario, "-run-", run)
 
 # DEPs --------------------------------------------------------------------
 
@@ -59,8 +60,6 @@ dint <- dgp(1e6, do = TRUE)
 F0 <- ecdf(dint$Y[dint$D == 0])
 F1 <- ecdf(dint$Y[dint$D == 1])
 oracle <- Vectorize(\(y, d) d * F1(y) + (1 - d) * F0(y))
-grd <- seq(min(dint$Y), max(dint$Y), length.out = 3e2)
-nd <- data.frame(expand.grid(Y = grd, D = 0:1))
 
 # Params ------------------------------------------------------------------
 
@@ -87,22 +86,26 @@ check_unif_indep <- function(iPIT, Z) {
 # Run ---------------------------------------------------------------------
 
 full_dat <- dgp(1e4)
+grd <- seq(min(full_dat$Y), max(full_dat$Y), length.out = 3e2)
+nd <- data.frame(expand.grid(Y = grd, D = 0:1))
+
 res <- lapply(ns, \(tn) {
   cat("\nRunning with n =", tn, "\n")
   pb <- txtProgressBar(min = 0, max = rep, style = 3, width = 60)
   lapply(seq_len(rep), \(iter) {
     setTxtProgressBar(pb, iter)
-    set.seed(1e4 + iter)
+    set.seed(1e4 + iter + 1e3 * run)
+
     ### Generate data
     idx <- sample.int(NROW(full_dat), tn)
     dat <- full_dat[idx, ]
 
     ### Compute oracle interventional CDF
-    dat$ORACLE <- oracle(dat$Y, dat$D)
+    nd$ORACLE <- oracle(nd$Y, nd$D)
 
     ### Fit vanilla nonparametric CDF
     m0 <- BoxCox(Y | D ~ 1,
-      data = dat, support = supp <- range(dat$Y),
+      data = dat, support = supp <- range(full_dat$Y),
       order = tord
     )
 
@@ -152,9 +155,21 @@ res <- lapply(ns, \(tn) {
         names_to = "method",
         values_to = "cdf"
       ) |>
-      mutate(n = tn, order = tord, lr = tlr, iter = iter)
+      mutate(n = tn, order = tord, lr = tlr, iter = iter, scenario = scenario)
   }) |> bind_rows()
 }) |> bind_rows()
+
+pd <- res |>
+  group_by(Y, D, n, order, lr, method) |>
+  summarize(
+    lwr = quantile(cdf, 0.1),
+    med = quantile(cdf, 0.5),
+    upr = quantile(cdf, 0.9)
+  )
+
+merged <- left_join(pd, res |> select(Y, D, n, order, lr, ORACLE),
+  by = c("Y", "D", "n", "order", "lr")
+)
 
 # Save --------------------------------------------------------------------
 
@@ -162,5 +177,5 @@ if (save) {
   if (!dir.exists(odir)) {
     dir.create(odir, recursive = TRUE)
   }
-  write_csv(res, file.path(odir, paste0(fname, ".csv")))
+  write_csv(merged, file.path(odir, paste0(fname, ".csv")))
 }
